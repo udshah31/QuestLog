@@ -13,6 +13,10 @@ interface CurrencyDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(balance: CurrencyBalance)
 
+    /** Seeds the single balance row (id = 1) only if it does not already exist. Never overwrites. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIfAbsent(balance: CurrencyBalance)
+
     @Query("SELECT * FROM currency_balance WHERE id = 1")
     fun observe(): Flow<CurrencyBalance?>
 

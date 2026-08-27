@@ -10,21 +10,28 @@ import kotlinx.datetime.Clock
 
 class CurrencyRepository(private val dao: CurrencyDao) {
 
+    /**
+     * Guarantees the single balance row (id = 1) exists. Safe to call concurrently and
+     * repeatedly: [CurrencyDao.insertIfAbsent] ignores the insert when the row is present,
+     * so an already-funded balance is never reset to zero.
+     */
     suspend fun ensureInitialized() {
-        if (dao.get() == null) {
-            dao.upsert(CurrencyBalance(updatedAt = Clock.System.now().toEpochMilliseconds()))
-        }
+        dao.insertIfAbsent(CurrencyBalance(updatedAt = Clock.System.now().toEpochMilliseconds()))
     }
 
-    /** Raw current balance row, or null before [ensureInitialized]. */
+    /** Raw current balance row, or null if it has never been written. */
     suspend fun currentBalance(): CurrencyBalance? = dao.get()
 
     suspend fun addRewards(xpDelta: Long, goldDelta: Long) {
+        // Room's addRewards is an UPDATE WHERE id = 1 — a no-op on a fresh install where the
+        // row was never seeded. Ensure it exists first so rewards are never silently lost.
+        ensureInitialized()
         dao.addRewards(xpDelta, goldDelta, Clock.System.now().toEpochMilliseconds())
     }
 
     /** Records the high-water mark of saved screen-time already converted to rewards for [date]. */
     suspend fun setDailyAward(date: String, awardedSavedMs: Long) {
+        ensureInitialized()
         dao.updateDailyAward(date, awardedSavedMs, Clock.System.now().toEpochMilliseconds())
     }
 
