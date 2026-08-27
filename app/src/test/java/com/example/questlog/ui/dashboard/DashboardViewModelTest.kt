@@ -50,6 +50,10 @@ class FakeCurrencyDao : CurrencyDao {
         balance = balance.copy(xp = balance.xp + xpDelta, gold = balance.gold + goldDelta, updatedAt = now)
         flow.value = balance
     }
+    override suspend fun updateDailyAward(date: String, awardedSavedMs: Long, now: Long) {
+        balance = balance.copy(rewardDate = date, awardedSavedMsToday = awardedSavedMs, updatedAt = now)
+        flow.value = balance
+    }
 }
 
 class FakeInventoryDao : InventoryDao {

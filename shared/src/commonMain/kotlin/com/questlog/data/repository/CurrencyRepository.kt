@@ -16,8 +16,16 @@ class CurrencyRepository(private val dao: CurrencyDao) {
         }
     }
 
+    /** Raw current balance row, or null before [ensureInitialized]. */
+    suspend fun currentBalance(): CurrencyBalance? = dao.get()
+
     suspend fun addRewards(xpDelta: Long, goldDelta: Long) {
         dao.addRewards(xpDelta, goldDelta, Clock.System.now().toEpochMilliseconds())
+    }
+
+    /** Records the high-water mark of saved screen-time already converted to rewards for [date]. */
+    suspend fun setDailyAward(date: String, awardedSavedMs: Long) {
+        dao.updateDailyAward(date, awardedSavedMs, Clock.System.now().toEpochMilliseconds())
     }
 
     fun observePlayerStats(todaySavedMs: Long = 0L): Flow<PlayerStats> =

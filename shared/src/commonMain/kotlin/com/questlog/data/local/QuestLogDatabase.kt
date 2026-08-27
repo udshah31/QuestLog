@@ -17,7 +17,7 @@ import com.questlog.data.local.entity.ScreenTimeRecord
         CurrencyBalance::class,
         InventoryItem::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(ItemTypeConverter::class)

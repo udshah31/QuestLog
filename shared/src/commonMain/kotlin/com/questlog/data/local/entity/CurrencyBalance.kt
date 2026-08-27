@@ -15,5 +15,9 @@ data class CurrencyBalance(
     val gems: Long = 0L,
     val currentLevel: Int = 1,
     val consecutiveDetoxDays: Int = 0,
+    /** Local date ("yyyy-MM-dd") that [awardedSavedMsToday] applies to; "" before the first award. */
+    val rewardDate: String = "",
+    /** High-water mark of screen-time-saved (ms) already converted to rewards on [rewardDate]. */
+    val awardedSavedMsToday: Long = 0L,
     val updatedAt: Long = 0L,
 )

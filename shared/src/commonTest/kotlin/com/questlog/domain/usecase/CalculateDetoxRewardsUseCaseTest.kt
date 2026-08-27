@@ -47,6 +47,22 @@ class FakeCurrencyDao : CurrencyDao {
         )
         flow.value = balance
     }
+    override suspend fun updateDailyAward(date: String, awardedSavedMs: Long, now: Long) {
+        balance = balance.copy(rewardDate = date, awardedSavedMsToday = awardedSavedMs, updatedAt = now)
+        flow.value = balance
+    }
+}
+
+/** Screen-time repo whose "saved time" is fixed and injectable, so reward math can be exercised. */
+private class StubScreenTimeRepo(
+    private val savedMs: Long,
+) : ScreenTimeRepository(FakeScreenTimeDao(), ScreenTimeTracker()) {
+    var callCount = 0
+        private set
+    override suspend fun fetchAndPersistToday(flaggedPackages: Set<String>, startOfDayMs: Long): Long {
+        callCount++
+        return savedMs
+    }
 }
 
 class CalculateDetoxRewardsUseCaseTest {
@@ -97,4 +113,51 @@ class CalculateDetoxRewardsUseCaseTest {
         assertEquals(2.0f, metrics.streakMultiplier)
         assertEquals(10, metrics.consecutiveDetoxDays)
     }
+
+    @Test
+    fun `repeated invocations on the same day do not re-grant the daily reward`() = runTest {
+        val currencyDao = FakeCurrencyDao()
+        val currencyRepo = CurrencyRepository(currencyDao)
+        // 30 minutes saved -> 30 * 10 XP/min * 1.0x = 300 XP, 30 * 2 gold/min = 60 gold
+        val screenTimeRepo = StubScreenTimeRepo(savedMs = 30 * 60_000L)
+
+        val useCase = CalculateDetoxRewardsUseCase(
+            screenTimeRepo = screenTimeRepo,
+            currencyRepo = currencyRepo,
+            flaggedPackages = setOf("com.instagram.android"),
+        )
+
+        val first = useCase()
+        assertEquals(300L, first.xpEarned)
+        assertEquals(60L, first.goldEarned)
+        assertEquals(300L, currencyDao.balance.xp)
+        assertEquals(60L, currencyDao.balance.gold)
+
+        val second = useCase()
+        val third = useCase()
+
+        assertEquals(0L, second.xpEarned)
+        assertEquals(0L, third.xpEarned)
+        assertEquals(300L, currencyDao.balance.xp)
+        assertEquals(60L, currencyDao.balance.gold)
+    }
+
+    @Test
+    fun `additional saved time later in the day grants only the incremental reward`() = runTest {
+        val currencyDao = FakeCurrencyDao()
+        val currencyRepo = CurrencyRepository(currencyDao)
+
+        val morning = StubScreenTimeRepo(savedMs = 20 * 60_000L) // 200 XP
+        useCaseFor(morning, currencyRepo)()
+        assertEquals(200L, currencyDao.balance.xp)
+
+        val evening = StubScreenTimeRepo(savedMs = 50 * 60_000L) // cumulative 500 XP
+        val eveningMetrics = useCaseFor(evening, currencyRepo)()
+
+        assertEquals(300L, eveningMetrics.xpEarned) // only the delta
+        assertEquals(500L, currencyDao.balance.xp)
+    }
+
+    private fun useCaseFor(repo: ScreenTimeRepository, currencyRepo: CurrencyRepository) =
+        CalculateDetoxRewardsUseCase(repo, currencyRepo, setOf("com.instagram.android"))
 }
