@@ -44,6 +44,7 @@ class FakeCurrencyDao : CurrencyDao {
     var balance = CurrencyBalance(id = 1L, xp = 200L, gold = 150L, gems = 5L, currentLevel = 2, consecutiveDetoxDays = 3)
     val flow = MutableStateFlow<CurrencyBalance?>(balance)
     override suspend fun upsert(b: CurrencyBalance) { balance = b; flow.value = b }
+    override suspend fun insertIfAbsent(b: CurrencyBalance) { /* row already present in this fake */ }
     override fun observe(): Flow<CurrencyBalance?> = flow
     override suspend fun get(): CurrencyBalance? = balance
     override suspend fun addRewards(xpDelta: Long, goldDelta: Long, now: Long) {
