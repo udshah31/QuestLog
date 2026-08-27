@@ -26,4 +26,11 @@ interface CurrencyDao {
         WHERE id = 1
     """)
     suspend fun addRewards(xpDelta: Long, goldDelta: Long, now: Long)
+
+    @Query("""
+        UPDATE currency_balance
+        SET rewardDate = :date, awardedSavedMsToday = :awardedSavedMs, updatedAt = :now
+        WHERE id = 1
+    """)
+    suspend fun updateDailyAward(date: String, awardedSavedMs: Long, now: Long)
 }

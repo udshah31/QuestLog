@@ -9,7 +9,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-class ScreenTimeRepository(
+open class ScreenTimeRepository(
     private val dao: ScreenTimeDao,
     private val tracker: ScreenTimeTracker,
 ) {
@@ -18,7 +18,7 @@ class ScreenTimeRepository(
         return "${now.year}-${now.monthNumber.toString().padStart(2,'0')}-${now.dayOfMonth.toString().padStart(2,'0')}"
     }
 
-    suspend fun fetchAndPersistToday(
+    open suspend fun fetchAndPersistToday(
         flaggedPackages: Set<String>,
         startOfDayMs: Long,
     ): Long {
