@@ -40,7 +40,19 @@ kotlin {
             implementation(libs.turbine)
             implementation(libs.koin.test)
         }
+
+        // Room's MigrationTestHelper runs migration tests as plain JVM unit tests here.
+        val desktopTest by getting {
+            dependencies {
+                implementation(libs.androidx.room.testing)
+            }
+        }
     }
+}
+
+// Point MigrationTestHelper at the exported schema JSONs.
+tasks.withType<Test>().configureEach {
+    systemProperty("questlog.schemasDir", layout.projectDirectory.dir("schemas").asFile.absolutePath)
 }
 
 // Room: output schema JSON files for migration tracking
