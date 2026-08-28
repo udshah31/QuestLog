@@ -15,7 +15,7 @@ import org.koin.dsl.module
 
 val appModule = module {
     single { BillingManager() }
-    viewModel { DashboardViewModel(get(), get(), get(), get()) }
+    viewModel { DashboardViewModel(get(), get(), get(), get(), get()) }
 }
 
 class QuestLogApp : Application() {

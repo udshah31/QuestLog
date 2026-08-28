@@ -12,14 +12,18 @@ import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.InventoryRepository
 import com.questlog.data.repository.ScreenTimeRepository
 import com.questlog.domain.model.CityTile
+import com.questlog.domain.model.DetoxMetrics
 import com.questlog.domain.platform.ScreenTimeTracker
 import com.questlog.domain.usecase.CalculateDetoxRewardsUseCase
+import com.questlog.domain.usecase.DetoxMonitorFlow
 import com.questlog.domain.usecase.GetDashboardStatsUseCase
 import com.questlog.domain.usecase.PurchaseBuildingUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -66,6 +70,11 @@ class FakeInventoryDao : InventoryDao {
     override suspend fun isOwned(itemId: String): Boolean = items.any { it.itemId == itemId }
 }
 
+/** Detox monitor that never emits — keeps the polling loop out of tests that don't exercise it. */
+private fun silentMonitor() = object : DetoxMonitorFlow(runDetoxCheck = { error("unused") }) {
+    override fun invoke(): Flow<DetoxMetrics> = emptyFlow()
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class DashboardViewModelTest {
 
@@ -99,6 +108,7 @@ class DashboardViewModelTest {
         val viewModel = DashboardViewModel(
             getDashboardStats = getDashboardStats,
             calculateDetoxRewards = calculateDetox,
+            detoxMonitor = silentMonitor(),
             purchaseBuilding = purchaseBuilding,
             billingManager = billingManager,
         )
@@ -125,6 +135,7 @@ class DashboardViewModelTest {
         val viewModel = DashboardViewModel(
             getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo, screenTimeRepo),
             calculateDetoxRewards = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, setOf("com.instagram.android")),
+            detoxMonitor = silentMonitor(),
             purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),
             billingManager = BillingManager(),
         )
@@ -150,6 +161,7 @@ class DashboardViewModelTest {
         val viewModel = DashboardViewModel(
             getDashboardStats = GetDashboardStatsUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao), ScreenTimeRepository(screenTimeDao, ScreenTimeTracker())),
             calculateDetoxRewards = CalculateDetoxRewardsUseCase(ScreenTimeRepository(screenTimeDao, ScreenTimeTracker()), CurrencyRepository(currencyDao), setOf("com.instagram.android")),
+            detoxMonitor = silentMonitor(),
             purchaseBuilding = PurchaseBuildingUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao)),
             billingManager = BillingManager(),
         )
@@ -162,5 +174,32 @@ class DashboardViewModelTest {
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.showPaywall)
+    }
+
+    @Test
+    fun `dashboard collects the detox monitor on start`() = runTest {
+        val ticks = MutableSharedFlow<DetoxMetrics>()
+        val monitor = object : DetoxMonitorFlow(runDetoxCheck = { error("unused") }) {
+            override fun invoke(): Flow<DetoxMetrics> = ticks
+        }
+
+        val currencyDao = FakeCurrencyDao()
+        val inventoryDao = FakeInventoryDao()
+        val screenTimeDao = FakeScreenTimeDao()
+        val currencyRepo = CurrencyRepository(currencyDao)
+        val inventoryRepo = InventoryRepository(inventoryDao)
+        val screenTimeRepo = ScreenTimeRepository(screenTimeDao, ScreenTimeTracker())
+
+        DashboardViewModel(
+            getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo, screenTimeRepo),
+            calculateDetoxRewards = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, setOf("com.instagram.android")),
+            detoxMonitor = monitor,
+            purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),
+            billingManager = BillingManager(),
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(1, ticks.subscriptionCount.value)
     }
 }
