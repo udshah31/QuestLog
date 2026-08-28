@@ -295,4 +295,46 @@ class CalculateDetoxRewardsUseCaseTest {
 
         assertEquals(5, currencyDao.balance.consecutiveDetoxDays) // 2 + (1 under-budget day + 2 empty days)
     }
+
+    @Test
+    fun `streak freeze preserves a premium user's streak on a missed day`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            balance = balance.copy(rewardDate = daysAgoKey(1), consecutiveDetoxDays = 5, streakFreezeLastUsed = "")
+        }
+        val repo = StubScreenTimeRepo(
+            savedMs = 0L,
+            foregroundByDate = mapOf(daysAgoKey(1) to 90 * 60_000L), // over the 60 min budget
+        )
+
+        useCaseFor(repo, CurrencyRepository(currencyDao), isPremium = { true })()
+
+        assertEquals(5, currencyDao.balance.consecutiveDetoxDays) // preserved, not reset
+        assertEquals(today().toString(), currencyDao.balance.streakFreezeLastUsed) // charge spent
+    }
+
+    @Test
+    fun `streak freeze on cooldown does not save the streak`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            balance = balance.copy(rewardDate = daysAgoKey(1), consecutiveDetoxDays = 5, streakFreezeLastUsed = daysAgoKey(3))
+        }
+        val repo = StubScreenTimeRepo(savedMs = 0L, foregroundByDate = mapOf(daysAgoKey(1) to 90 * 60_000L))
+
+        useCaseFor(repo, CurrencyRepository(currencyDao), isPremium = { true })()
+
+        assertEquals(0, currencyDao.balance.consecutiveDetoxDays)
+        assertEquals(daysAgoKey(3), currencyDao.balance.streakFreezeLastUsed) // unchanged
+    }
+
+    @Test
+    fun `a non-premium user's streak is not frozen`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            balance = balance.copy(rewardDate = daysAgoKey(1), consecutiveDetoxDays = 5, streakFreezeLastUsed = "")
+        }
+        val repo = StubScreenTimeRepo(savedMs = 0L, foregroundByDate = mapOf(daysAgoKey(1) to 90 * 60_000L))
+
+        useCaseFor(repo, CurrencyRepository(currencyDao), isPremium = { false })()
+
+        assertEquals(0, currencyDao.balance.consecutiveDetoxDays)
+        assertEquals("", currencyDao.balance.streakFreezeLastUsed)
+    }
 }

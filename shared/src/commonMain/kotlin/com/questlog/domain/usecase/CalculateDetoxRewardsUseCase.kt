@@ -1,8 +1,10 @@
 package com.questlog.domain.usecase
 
+import com.questlog.data.local.entity.CurrencyBalance
 import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.ScreenTimeRepository
 import com.questlog.domain.model.DetoxMetrics
+import com.questlog.util.StreakFreeze
 import com.questlog.util.TimeConversion
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.Clock
@@ -57,7 +59,7 @@ class CalculateDetoxRewardsUseCase(
         var streak = balance?.consecutiveDetoxDays ?: 0
         val lastDay = balance?.rewardDate
         if (!lastDay.isNullOrEmpty() && lastDay != todayKey) {
-            streak = evaluateStreak(lastDay, today, streak)
+            streak = evaluateStreak(lastDay, today, streak, balance)
             currencyRepo.setStreak(streak)
         }
 
@@ -93,17 +95,31 @@ class CalculateDetoxRewardsUseCase(
 
     /**
      * Streak after the rollover from [lastDayKey] to [today]. Every calendar day in
-     * `[lastDayKey, today)` that stayed within budget adds one; a day over budget resets
-     * to zero. Days with no records (phone-free) count as within budget.
+     * `[lastDayKey, today)` that stayed within budget adds one. A day over budget resets
+     * the streak — unless the user is premium and their weekly freeze charge is available,
+     * in which case the missed day is skipped and the charge is spent. Days with no records
+     * (phone-free) always count as within budget.
      */
-    private suspend fun evaluateStreak(lastDayKey: String, today: LocalDate, currentStreak: Int): Int {
+    private suspend fun evaluateStreak(
+        lastDayKey: String,
+        today: LocalDate,
+        currentStreak: Int,
+        balance: CurrencyBalance?,
+    ): Int {
         val lastDay = runCatching { LocalDate.parse(lastDayKey) }.getOrNull() ?: return currentStreak
         val gapDays = lastDay.daysUntil(today)
         if (gapDays <= 0) return currentStreak
-
-        val lastDayWithinBudget = screenTimeRepo.totalForegroundMs(lastDayKey) <= dailyFlaggedBudgetMs
         val phoneFreeGapDays = gapDays - 1 // days strictly between lastDay and today have no records
-        return if (lastDayWithinBudget) currentStreak + gapDays else phoneFreeGapDays
+
+        if (screenTimeRepo.totalForegroundMs(lastDayKey) <= dailyFlaggedBudgetMs) {
+            return currentStreak + gapDays
+        }
+        // lastDay was over budget — the streak would reset.
+        if (isPremium() && StreakFreeze.isRechargedOn(balance?.streakFreezeLastUsed.orEmpty(), today)) {
+            currencyRepo.setStreakFreezeUsed(today.toString())
+            return currentStreak + phoneFreeGapDays
+        }
+        return phoneFreeGapDays
     }
 
     private companion object {
