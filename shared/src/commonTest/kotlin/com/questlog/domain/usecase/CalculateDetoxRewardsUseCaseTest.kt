@@ -184,8 +184,43 @@ class CalculateDetoxRewardsUseCaseTest {
         assertEquals(500L, currencyDao.balance.xp)
     }
 
-    private fun useCaseFor(repo: ScreenTimeRepository, currencyRepo: CurrencyRepository) =
-        CalculateDetoxRewardsUseCase(repo, currencyRepo, setOf("com.instagram.android"))
+    @Test
+    fun `premium doubles the detox XP and gold`() = runTest {
+        val currencyDao = FakeCurrencyDao()
+        // 30 min saved, no streak -> base 300 XP / 60 gold; premium -> 600 / 120
+        val repo = StubScreenTimeRepo(savedMs = 30 * 60_000L)
+
+        val metrics = useCaseFor(repo, CurrencyRepository(currencyDao), isPremium = { true })()
+
+        assertEquals(600L, metrics.xpEarned)
+        assertEquals(120L, metrics.goldEarned)
+        assertEquals(600L, currencyDao.balance.xp)
+        assertEquals(120L, currencyDao.balance.gold)
+    }
+
+    @Test
+    fun `premium 2x stacks on top of the streak multiplier`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            // consecutiveDetoxDays = 10 -> streak multiplier 2.0x; rewardDate "" -> no rollover
+            balance = balance.copy(consecutiveDetoxDays = 10)
+        }
+        val repo = StubScreenTimeRepo(savedMs = 30 * 60_000L)
+
+        val metrics = useCaseFor(repo, CurrencyRepository(currencyDao), isPremium = { true })()
+
+        // 30 min * 10 XP/min * 2.0 streak * 2.0 premium = 1200
+        assertEquals(1200L, metrics.xpEarned)
+        assertEquals(240L, metrics.goldEarned)
+    }
+
+    private fun useCaseFor(
+        repo: ScreenTimeRepository,
+        currencyRepo: CurrencyRepository,
+        isPremium: () -> Boolean = { false },
+    ) = CalculateDetoxRewardsUseCase(
+        repo, currencyRepo, setOf("com.instagram.android"),
+        isPremium = isPremium,
+    )
 
     // ── streak tracking ──────────────────────────────────────────────────────
 

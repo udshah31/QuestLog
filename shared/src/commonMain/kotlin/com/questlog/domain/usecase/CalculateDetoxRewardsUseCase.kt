@@ -33,6 +33,7 @@ class CalculateDetoxRewardsUseCase(
     private val flaggedPackages: Set<String>,
     private val dailyFlaggedBudgetMs: Long = 60 * 60_000L,
     private val evaluateDailyQuests: suspend () -> Unit = {},
+    private val isPremium: () -> Boolean = { false },
 ) {
     suspend operator fun invoke(): DetoxMetrics {
         val tz = TimeZone.currentSystemDefault()
@@ -60,7 +61,8 @@ class CalculateDetoxRewardsUseCase(
             currencyRepo.setStreak(streak)
         }
 
-        val multiplier = TimeConversion.streakMultiplier(streak)
+        val premiumMultiplier = if (isPremium()) PREMIUM_MULTIPLIER else 1f
+        val multiplier = TimeConversion.streakMultiplier(streak) * premiumMultiplier
         val xpDelta = TimeConversion.xpEarned(cumulativeSavedMs, multiplier) -
             TimeConversion.xpEarned(alreadyRewardedMs, multiplier)
         val goldDelta = TimeConversion.goldEarned(cumulativeSavedMs, multiplier) -
@@ -85,7 +87,7 @@ class CalculateDetoxRewardsUseCase(
             currentLevel = stats.level,
             xpProgress = TimeConversion.xpProgress(stats.xp),
             consecutiveDetoxDays = stats.consecutiveDetoxDays,
-            streakMultiplier = multiplier,
+            streakMultiplier = TimeConversion.streakMultiplier(streak),
         )
     }
 
@@ -102,5 +104,9 @@ class CalculateDetoxRewardsUseCase(
         val lastDayWithinBudget = screenTimeRepo.totalForegroundMs(lastDayKey) <= dailyFlaggedBudgetMs
         val phoneFreeGapDays = gapDays - 1 // days strictly between lastDay and today have no records
         return if (lastDayWithinBudget) currentStreak + gapDays else phoneFreeGapDays
+    }
+
+    private companion object {
+        const val PREMIUM_MULTIPLIER = 2f
     }
 }

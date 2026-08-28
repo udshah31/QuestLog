@@ -4,6 +4,7 @@ import android.app.Application
 import com.example.questlog.billing.BillingManager
 import com.example.questlog.ui.dashboard.DashboardViewModel
 import com.questlog.di.platformModule
+import com.questlog.domain.PremiumStatusProvider
 import com.questlog.di.sharedModule
 import com.revenuecat.purchases.LogLevel
 import com.revenuecat.purchases.Purchases
@@ -15,6 +16,7 @@ import org.koin.dsl.module
 
 val appModule = module {
     single { BillingManager() }
+    single<PremiumStatusProvider> { PremiumStatusProvider { get<BillingManager>().isPremium.value } }
     viewModel { DashboardViewModel(get(), get(), get(), get(), get(), get()) }
 }
 
