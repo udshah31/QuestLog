@@ -72,8 +72,10 @@ flowchart LR
 1. `DetoxMonitorFlow` emits on start and every 60 s (a failing tick is skipped, not fatal).
    The 🔄 button triggers the same recalculation on demand.
 2. `CalculateDetoxRewardsUseCase` reads today's foreground time for the flagged
-   distraction packages, derives "saved" milliseconds per app (`60 min − used`,
-   floored at 0), and converts it with `TimeConversion`:
+   distraction packages and derives the day's "saved" time via `DetoxBudget`:
+   `min(90 min, elapsed today) − total flagged foreground`, floored at 0 — the
+   part of the day's 90-minute budget you didn't spend on distractions. It then
+   converts that with `TimeConversion`:
    - **10 XP + 2 gold per saved minute**
    - **streak multiplier** `1.0 + 0.10 × consecutiveDays`, capped at `3.0×`
    - levels follow a triangular curve: `xpForLevel(n) = 100 · (n−1) · n / 2`
@@ -81,18 +83,20 @@ flowchart LR
    (`awardedSavedMsToday` / `rewardDate`) and only ever grants the *increase*, so
    repeated polls or refreshes can't inflate the balance.
 4. Writes flow back to the UI reactively through `GetDashboardStatsUseCase`, which
-   `combine`s the currency balance, the owned buildings, and today's saved-time sum.
+   `combine`s the currency balance (which carries today's saved-time high-water
+   mark) with the owned buildings.
 
 ## Persistence
 
-One SQLite database, `questlog.db` (schema **v3**, migrations `1→2→3` in
-`DatabaseFactory`).
+One SQLite database, `questlog.db` (schema **v6**, migrations in
+`data/local/QuestLogMigrations.kt`).
 
 | Table | Key | Holds |
 |---|---|---|
 | `currency_balance` | `id = 1` (single row) | `xp`, `gold`, `gems`, `consecutiveDetoxDays`, `rewardDate`, `awardedSavedMsToday` |
-| `screen_time_records` | `(packageName, date)` | `foregroundMs`, `savedMs` — one row per app per day |
+| `screen_time_records` | `(packageName, date)` | `foregroundMs` — one row per app per day |
 | `inventory_items` | `itemId` | `type`, `tier`, `isPremium`, `acquiredAt` |
+| `quest_completions` | `(date, questId)` | `completedAt` — a row means the quest was completed and rewarded that day |
 
 Exported schemas live in `shared/schemas/` and are used for migration diffing.
 

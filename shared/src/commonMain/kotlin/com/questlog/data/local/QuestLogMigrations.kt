@@ -53,6 +53,13 @@ internal val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+/** v6: drop screen_time_records.savedMs — saved time is now computed for the day as a whole. */
+internal val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `screen_time_records` DROP COLUMN `savedMs`")
+    }
+}
+
 /** Every migration the app database ships, in order. */
 internal val questLogMigrations: Array<Migration> =
-    arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+    arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)

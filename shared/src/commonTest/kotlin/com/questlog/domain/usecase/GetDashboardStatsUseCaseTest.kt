@@ -2,15 +2,11 @@ package com.questlog.domain.usecase
 
 import com.questlog.data.local.dao.CurrencyDao
 import com.questlog.data.local.dao.InventoryDao
-import com.questlog.data.local.dao.ScreenTimeDao
 import com.questlog.data.local.entity.CurrencyBalance
 import com.questlog.data.local.entity.InventoryItem
 import com.questlog.data.local.entity.ItemType
-import com.questlog.data.local.entity.ScreenTimeRecord
 import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.InventoryRepository
-import com.questlog.data.repository.ScreenTimeRepository
-import com.questlog.domain.platform.ScreenTimeTracker
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -18,8 +14,8 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-private class StubCurrencyDao : CurrencyDao {
-    private val flow = MutableStateFlow<CurrencyBalance?>(CurrencyBalance(id = 1L))
+private class StubCurrencyDao(balance: CurrencyBalance) : CurrencyDao {
+    private val flow = MutableStateFlow<CurrencyBalance?>(balance)
     override suspend fun upsert(balance: CurrencyBalance) {}
     override suspend fun insertIfAbsent(balance: CurrencyBalance) {}
     override fun observe(): Flow<CurrencyBalance?> = flow
@@ -37,39 +33,33 @@ private class StubInventoryDao : InventoryDao {
     override suspend fun countBuildingsAcquiredSince(sinceMs: Long): Int = 0
 }
 
-private class StubScreenTimeDao(savedMsPerApp: List<Long>) : ScreenTimeDao {
-    private val rows = savedMsPerApp.mapIndexed { i, ms ->
-        ScreenTimeRecord(packageName = "pkg$i", date = "today", foregroundMs = 0L, savedMs = ms)
-    }
-    override suspend fun upsert(record: ScreenTimeRecord) {}
-    override fun getByDate(date: String): Flow<List<ScreenTimeRecord>> = MutableStateFlow(rows)
-    override fun getSince(fromDate: String): Flow<List<ScreenTimeRecord>> = MutableStateFlow(emptyList())
-    override suspend fun totalSavedMsForDate(date: String): Long = rows.sumOf { it.savedMs }
-    override suspend fun totalForegroundMsForDate(date: String): Long = rows.sumOf { it.foregroundMs }
-    override suspend fun foregroundMsForPackageOnDate(packageName: String, date: String): Long =
-        rows.filter { it.packageName == packageName }.sumOf { it.foregroundMs }
-}
-
 class GetDashboardStatsUseCaseTest {
 
-    private fun useCase(savedMsPerApp: List<Long>): GetDashboardStatsUseCase =
-        GetDashboardStatsUseCase(
-            currencyRepo = CurrencyRepository(StubCurrencyDao()),
-            inventoryRepo = InventoryRepository(StubInventoryDao()),
-            screenTimeRepo = ScreenTimeRepository(StubScreenTimeDao(savedMsPerApp), ScreenTimeTracker()),
-        )
+    private fun useCase(balance: CurrencyBalance) = GetDashboardStatsUseCase(
+        currencyRepo = CurrencyRepository(StubCurrencyDao(balance)),
+        inventoryRepo = InventoryRepository(StubInventoryDao()),
+    )
 
     @Test
-    fun `todaySavedMs is the sum of saved time persisted for today`() = runTest {
-        val state = useCase(savedMsPerApp = listOf(20 * 60_000L, 15 * 60_000L)).invoke().first()
+    fun `todaySavedMs mirrors the currency balance's daily high-water mark`() = runTest {
+        val state = useCase(CurrencyBalance(id = 1L, awardedSavedMsToday = 42 * 60_000L)).invoke().first()
 
-        assertEquals(35 * 60_000L, state.stats.todaySavedMs)
+        assertEquals(42 * 60_000L, state.stats.todaySavedMs)
     }
 
     @Test
-    fun `todaySavedMs is zero when nothing has been persisted today`() = runTest {
-        val state = useCase(savedMsPerApp = emptyList()).invoke().first()
+    fun `todaySavedMs is zero when nothing has been awarded today`() = runTest {
+        val state = useCase(CurrencyBalance(id = 1L)).invoke().first()
 
         assertEquals(0L, state.stats.todaySavedMs)
+    }
+
+    @Test
+    fun `stats and buildings are still surfaced`() = runTest {
+        val state = useCase(CurrencyBalance(id = 1L, xp = 300L, gold = 120L)).invoke().first()
+
+        assertEquals(300L, state.stats.xp)
+        assertEquals(120L, state.stats.gold)
+        assertEquals(6, state.cityTiles.size)
     }
 }

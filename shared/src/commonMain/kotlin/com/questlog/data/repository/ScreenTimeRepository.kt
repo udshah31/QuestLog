@@ -4,8 +4,7 @@ import com.questlog.data.local.dao.ScreenTimeDao
 import com.questlog.data.local.entity.ScreenTimeRecord
 import com.questlog.domain.model.AppUsage
 import com.questlog.domain.platform.ScreenTimeTracker
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import com.questlog.util.DetoxBudget
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -13,43 +12,37 @@ import kotlinx.datetime.toLocalDateTime
 open class ScreenTimeRepository(
     private val dao: ScreenTimeDao,
     private val tracker: ScreenTimeTracker,
+    private val dailyBudgetMs: Long = DetoxBudget.DEFAULT_DAILY_BUDGET_MS,
 ) {
     private fun today(): String {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         return "${now.year}-${now.monthNumber.toString().padStart(2,'0')}-${now.dayOfMonth.toString().padStart(2,'0')}"
     }
 
+    /**
+     * Records each flagged app's foreground time for today and returns the day's "saved
+     * time" so far: of the elapsed portion of [dailyBudgetMs], the part not spent on
+     * flagged apps (see [DetoxBudget]).
+     */
     open suspend fun fetchAndPersistToday(
         flaggedPackages: Set<String>,
         startOfDayMs: Long,
     ): Long {
         val endMs = Clock.System.now().toEpochMilliseconds()
-        val usages: List<AppUsage> = tracker.getUsageForPeriod(startOfDayMs, endMs)
-        var totalSavedMs = 0L
+        val flagged: List<AppUsage> = tracker.getUsageForPeriod(startOfDayMs, endMs)
+            .filter { it.packageName in flaggedPackages }
 
-        for (usage in usages.filter { it.packageName in flaggedPackages }) {
-            // Heuristic: "saved time" is what they would have used minus what they actually used,
-            // capped at a reasonable daily goal baseline of 60 minutes per app.
-            val dailyGoalMs = 60 * 60_000L
-            val savedMs = maxOf(0L, dailyGoalMs - usage.totalForegroundMs)
-            totalSavedMs += savedMs
-            dao.upsert(
-                ScreenTimeRecord(
-                    packageName = usage.packageName,
-                    date = today(),
-                    foregroundMs = usage.totalForegroundMs,
-                    savedMs = savedMs,
-                )
-            )
+        for (usage in flagged) {
+            dao.upsert(ScreenTimeRecord(usage.packageName, today(), usage.totalForegroundMs))
         }
-        return totalSavedMs
+
+        val flaggedForegroundMs = flagged.sumOf { it.totalForegroundMs }
+        return DetoxBudget.savedTimeMs(
+            budgetMs = dailyBudgetMs,
+            elapsedMs = endMs - startOfDayMs,
+            flaggedForegroundMs = flaggedForegroundMs,
+        )
     }
-
-    fun observeToday(): Flow<List<ScreenTimeRecord>> = dao.getByDate(today())
-
-    /** Total milliseconds "saved" across all flagged apps so far today. */
-    fun observeTodaySavedMs(): Flow<Long> =
-        dao.getByDate(today()).map { records -> records.sumOf { it.savedMs } }
 
     /** Total flagged-app foreground milliseconds recorded for [date]. */
     open suspend fun totalForegroundMs(date: String): Long = dao.totalForegroundMsForDate(date)

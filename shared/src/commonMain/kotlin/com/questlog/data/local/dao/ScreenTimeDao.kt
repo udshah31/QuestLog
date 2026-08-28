@@ -12,14 +12,11 @@ interface ScreenTimeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(record: ScreenTimeRecord)
 
-    @Query("SELECT * FROM screen_time_records WHERE date = :date ORDER BY savedMs DESC")
+    @Query("SELECT * FROM screen_time_records WHERE date = :date ORDER BY foregroundMs DESC")
     fun getByDate(date: String): Flow<List<ScreenTimeRecord>>
 
     @Query("SELECT * FROM screen_time_records WHERE date >= :fromDate ORDER BY date DESC")
     fun getSince(fromDate: String): Flow<List<ScreenTimeRecord>>
-
-    @Query("SELECT SUM(savedMs) FROM screen_time_records WHERE date = :date")
-    suspend fun totalSavedMsForDate(date: String): Long
 
     @Query("SELECT COALESCE(SUM(foregroundMs), 0) FROM screen_time_records WHERE date = :date")
     suspend fun totalForegroundMsForDate(date: String): Long

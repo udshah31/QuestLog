@@ -44,7 +44,6 @@ class FakeScreenTimeDao : ScreenTimeDao {
     override suspend fun upsert(record: ScreenTimeRecord) { records.add(record) }
     override fun getByDate(date: String): Flow<List<ScreenTimeRecord>> = MutableStateFlow(records)
     override fun getSince(fromDate: String): Flow<List<ScreenTimeRecord>> = MutableStateFlow(records)
-    override suspend fun totalSavedMsForDate(date: String): Long = records.sumOf { it.savedMs }
     override suspend fun totalForegroundMsForDate(date: String): Long = records.sumOf { it.foregroundMs }
     override suspend fun foregroundMsForPackageOnDate(packageName: String, date: String): Long =
         records.filter { it.packageName == packageName }.sumOf { it.foregroundMs }
@@ -124,7 +123,7 @@ class DashboardViewModelTest {
         val inventoryRepo = InventoryRepository(inventoryDao)
         val screenTimeRepo = ScreenTimeRepository(screenTimeDao, ScreenTimeTracker())
 
-        val getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo, screenTimeRepo)
+        val getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo)
         val calculateDetox = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, setOf("com.instagram.android"))
         val purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo)
         val billingManager = BillingManager()
@@ -158,7 +157,7 @@ class DashboardViewModelTest {
         val screenTimeRepo = ScreenTimeRepository(screenTimeDao, ScreenTimeTracker())
 
         val viewModel = DashboardViewModel(
-            getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo, screenTimeRepo),
+            getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo),
             calculateDetoxRewards = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, setOf("com.instagram.android")),
             detoxMonitor = silentMonitor(),
             purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),
@@ -185,7 +184,7 @@ class DashboardViewModelTest {
         val screenTimeDao = FakeScreenTimeDao()
 
         val viewModel = DashboardViewModel(
-            getDashboardStats = GetDashboardStatsUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao), ScreenTimeRepository(screenTimeDao, ScreenTimeTracker())),
+            getDashboardStats = GetDashboardStatsUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao)),
             calculateDetoxRewards = CalculateDetoxRewardsUseCase(ScreenTimeRepository(screenTimeDao, ScreenTimeTracker()), CurrencyRepository(currencyDao), setOf("com.instagram.android")),
             detoxMonitor = silentMonitor(),
             purchaseBuilding = PurchaseBuildingUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao)),
@@ -218,7 +217,7 @@ class DashboardViewModelTest {
         val screenTimeRepo = ScreenTimeRepository(screenTimeDao, ScreenTimeTracker())
 
         DashboardViewModel(
-            getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo, screenTimeRepo),
+            getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo),
             calculateDetoxRewards = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, setOf("com.instagram.android")),
             detoxMonitor = monitor,
             purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),

@@ -35,8 +35,6 @@ class FakeScreenTimeDao : ScreenTimeDao {
         MutableStateFlow(records.filter { it.date == date })
     override fun getSince(fromDate: String): Flow<List<ScreenTimeRecord>> =
         MutableStateFlow(records.filter { it.date >= fromDate })
-    override suspend fun totalSavedMsForDate(date: String): Long =
-        records.filter { it.date == date }.sumOf { it.savedMs }
     override suspend fun totalForegroundMsForDate(date: String): Long =
         records.filter { it.date == date }.sumOf { it.foregroundMs }
     override suspend fun foregroundMsForPackageOnDate(packageName: String, date: String): Long =
@@ -108,12 +106,12 @@ class CalculateDetoxRewardsUseCaseTest {
 
         val metrics = useCase()
 
-        // Verify metrics are computed correctly
         assertTrue(metrics.timeSavedMs >= 0)
         assertTrue(metrics.xpEarned >= 0)
         assertTrue(metrics.goldEarned >= 0)
-        assertEquals(1, metrics.currentLevel)
         assertEquals(1.0f, metrics.streakMultiplier)
+        // Whatever was computed for today is the balance's high-water mark.
+        assertEquals(metrics.timeSavedMs, currencyDao.balance.awardedSavedMsToday)
     }
 
     @Test
