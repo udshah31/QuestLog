@@ -1,7 +1,9 @@
 package com.questlog.data.local
 
+import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.RoomDatabaseConstructor
 import androidx.room.TypeConverters
 import com.questlog.data.local.converter.ItemTypeConverter
 import com.questlog.data.local.dao.CurrencyDao
@@ -17,9 +19,10 @@ import com.questlog.data.local.entity.ScreenTimeRecord
         CurrencyBalance::class,
         InventoryItem::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
+@ConstructedBy(QuestLogDatabaseConstructor::class)
 @TypeConverters(ItemTypeConverter::class)
 abstract class QuestLogDatabase : RoomDatabase() {
     abstract fun screenTimeDao(): ScreenTimeDao
@@ -29,4 +32,10 @@ abstract class QuestLogDatabase : RoomDatabase() {
     companion object {
         const val DB_NAME = "questlog.db"
     }
+}
+
+/** Room generates the per-platform `actual` implementation of this object via KSP. */
+@Suppress("NO_ACTUAL_FOR_EXPECT", "KotlinNoActualForExpect")
+expect object QuestLogDatabaseConstructor : RoomDatabaseConstructor<QuestLogDatabase> {
+    override fun initialize(): QuestLogDatabase
 }
