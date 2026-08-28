@@ -161,6 +161,9 @@ are wired into Gradle yet).
 - **Budgets / thresholds** are constructor params with defaults: the 90‑minute saved-time
   budget (`ScreenTimeRepository`), the 60‑minute streak budget
   (`CalculateDetoxRewardsUseCase`), and the quest constants in `QuestCatalog`.
+- **Pro perks** (active while `BillingManager.isPremium`): a 2× multiplier on detox-time
+  XP + gold (stacks with the streak multiplier), and a Streak Freeze Shield that protects
+  one over-budget day per 7 days (`StreakFreeze.COOLDOWN_DAYS`).
 - **Usage access**: the app needs the `PACKAGE_USAGE_STATS` special permission,
   granted by the user in *Settings → Apps → Special app access → Usage access*.
 - **RevenueCat**: `BuildConfig.REVENUECAT_API_KEY` is a placeholder — inject a real
