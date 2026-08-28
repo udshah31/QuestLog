@@ -42,6 +42,7 @@ class FakeScreenTimeDao : ScreenTimeDao {
     override fun getByDate(date: String): Flow<List<ScreenTimeRecord>> = MutableStateFlow(records)
     override fun getSince(fromDate: String): Flow<List<ScreenTimeRecord>> = MutableStateFlow(records)
     override suspend fun totalSavedMsForDate(date: String): Long = records.sumOf { it.savedMs }
+    override suspend fun totalForegroundMsForDate(date: String): Long = records.sumOf { it.foregroundMs }
 }
 
 class FakeCurrencyDao : CurrencyDao {
@@ -57,6 +58,10 @@ class FakeCurrencyDao : CurrencyDao {
     }
     override suspend fun updateDailyAward(date: String, awardedSavedMs: Long, now: Long) {
         balance = balance.copy(rewardDate = date, awardedSavedMsToday = awardedSavedMs, updatedAt = now)
+        flow.value = balance
+    }
+    override suspend fun setStreak(days: Int, now: Long) {
+        balance = balance.copy(consecutiveDetoxDays = days, updatedAt = now)
         flow.value = balance
     }
 }

@@ -26,6 +26,7 @@ private class StubCurrencyDao : CurrencyDao {
     override suspend fun get(): CurrencyBalance? = flow.value
     override suspend fun addRewards(xpDelta: Long, goldDelta: Long, now: Long) {}
     override suspend fun updateDailyAward(date: String, awardedSavedMs: Long, now: Long) {}
+    override suspend fun setStreak(days: Int, now: Long) {}
 }
 
 private class StubInventoryDao : InventoryDao {
@@ -43,6 +44,7 @@ private class StubScreenTimeDao(savedMsPerApp: List<Long>) : ScreenTimeDao {
     override fun getByDate(date: String): Flow<List<ScreenTimeRecord>> = MutableStateFlow(rows)
     override fun getSince(fromDate: String): Flow<List<ScreenTimeRecord>> = MutableStateFlow(emptyList())
     override suspend fun totalSavedMsForDate(date: String): Long = rows.sumOf { it.savedMs }
+    override suspend fun totalForegroundMsForDate(date: String): Long = rows.sumOf { it.foregroundMs }
 }
 
 class GetDashboardStatsUseCaseTest {
