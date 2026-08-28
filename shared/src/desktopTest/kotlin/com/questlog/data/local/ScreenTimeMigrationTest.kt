@@ -69,21 +69,19 @@ class ScreenTimeMigrationTest {
     }
 
     @Test
-    fun `migrating 1 to 6 runs the full chain`() = runTest {
+    fun `migrating 1 to 7 runs the full chain`() = runTest {
         helper.createDatabase(1).close()
 
-        val v6 = helper.runMigrationsAndValidate(6, questLogMigrations.toList())
+        val v7 = helper.runMigrationsAndValidate(7, questLogMigrations.toList())
 
-        // v2 columns present, v5 dropped currentLevel
-        v6.execSQL("INSERT INTO currency_balance (id, xp, gold, gems, consecutiveDetoxDays, rewardDate, awardedSavedMsToday, updatedAt) VALUES (1, 0, 0, 0, 0, '2026-08-27', 60000, 0)")
-        assertEquals(60_000L, v6.queryLongs("SELECT awardedSavedMsToday FROM currency_balance WHERE id = 1").single().single())
-        // v3 key + v6 dropped savedMs
-        v6.execSQL("INSERT INTO screen_time_records (packageName, date, foregroundMs) VALUES ('com.instagram.android', '2026-08-27', 123)")
-        assertEquals(123L, v6.queryLongs("SELECT foregroundMs FROM screen_time_records").single().single())
-        // v4 table
-        assertEquals(0L, v6.queryLongs("SELECT COUNT(*) FROM quest_completions").single().single())
+        v7.execSQL("INSERT INTO currency_balance (id, xp, gold, gems, consecutiveDetoxDays, rewardDate, awardedSavedMsToday, updatedAt) VALUES (1, 0, 0, 0, 0, '2026-08-27', 60000, 0)")
+        assertEquals(60_000L, v7.queryLongs("SELECT awardedSavedMsToday FROM currency_balance WHERE id = 1").single().single())
+        assertEquals(0L, v7.queryLongs("SELECT length(streakFreezeLastUsed) FROM currency_balance WHERE id = 1").single().single())
+        v7.execSQL("INSERT INTO screen_time_records (packageName, date, foregroundMs) VALUES ('com.instagram.android', '2026-08-27', 123)")
+        assertEquals(123L, v7.queryLongs("SELECT foregroundMs FROM screen_time_records").single().single())
+        assertEquals(0L, v7.queryLongs("SELECT COUNT(*) FROM quest_completions").single().single())
 
-        v6.close()
+        v7.close()
     }
 
     @Test
@@ -112,6 +110,19 @@ class ScreenTimeMigrationTest {
         assertTrue(columnGone, "savedMs should no longer exist after v6")
 
         v6.close()
+    }
+
+    @Test
+    fun `6 to 7 adds the streakFreezeLastUsed column with an empty default`() = runTest {
+        helper.createDatabase(6).close()
+
+        val v7 = helper.runMigrationsAndValidate(7, listOf(MIGRATION_6_7))
+
+        // Old-shape insert (no new column) uses the default ''
+        // Old-shape insert (no new column) uses the DEFAULT '' — length 0.
+        v7.execSQL("INSERT INTO currency_balance (id, xp, gold, gems, consecutiveDetoxDays, rewardDate, awardedSavedMsToday, updatedAt) VALUES (1, 0, 0, 0, 0, '', 0, 0)")
+        assertEquals(0L, v7.queryLongs("SELECT length(streakFreezeLastUsed) FROM currency_balance WHERE id = 1").single().single())
+        v7.close()
     }
 
     @Test

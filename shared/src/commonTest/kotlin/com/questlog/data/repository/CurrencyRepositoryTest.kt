@@ -43,6 +43,11 @@ private class FreshInstallCurrencyDao : CurrencyDao {
         val current = state.value ?: return
         state.value = current.copy(consecutiveDetoxDays = days, updatedAt = now)
     }
+
+    override suspend fun setStreakFreezeUsed(date: String, now: Long) {
+        val current = state.value ?: return
+        state.value = current.copy(streakFreezeLastUsed = date, updatedAt = now)
+    }
 }
 
 class CurrencyRepositoryTest {

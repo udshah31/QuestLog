@@ -60,6 +60,13 @@ internal val MIGRATION_5_6 = object : Migration(5, 6) {
     }
 }
 
+/** v7: streak-freeze (Pro perk) — records when the weekly charge was last spent. */
+internal val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `currency_balance` ADD COLUMN `streakFreezeLastUsed` TEXT NOT NULL DEFAULT ''")
+    }
+}
+
 /** Every migration the app database ships, in order. */
 internal val questLogMigrations: Array<Migration> =
-    arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+    arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)

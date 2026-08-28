@@ -18,5 +18,7 @@ data class CurrencyBalance(
     val rewardDate: String = "",
     /** High-water mark of screen-time-saved (ms) already converted to rewards on [rewardDate]. */
     val awardedSavedMsToday: Long = 0L,
+    /** ISO date the streak-freeze charge was last spent; "" if never used / recharged. */
+    val streakFreezeLastUsed: String = "",
     val updatedAt: Long = 0L,
 )

@@ -23,6 +23,7 @@ private class StubCurrencyDao(balance: CurrencyBalance) : CurrencyDao {
     override suspend fun addRewards(xpDelta: Long, goldDelta: Long, now: Long) {}
     override suspend fun updateDailyAward(date: String, awardedSavedMs: Long, now: Long) {}
     override suspend fun setStreak(days: Int, now: Long) {}
+    override suspend fun setStreakFreezeUsed(date: String, now: Long) {}
 }
 
 private class StubInventoryDao : InventoryDao {

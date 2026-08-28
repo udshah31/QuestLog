@@ -68,6 +68,10 @@ class FakeCurrencyDao : CurrencyDao {
         balance = balance.copy(consecutiveDetoxDays = days, updatedAt = now)
         flow.value = balance
     }
+    override suspend fun setStreakFreezeUsed(date: String, now: Long) {
+        balance = balance.copy(streakFreezeLastUsed = date, updatedAt = now)
+        flow.value = balance
+    }
 }
 
 /**

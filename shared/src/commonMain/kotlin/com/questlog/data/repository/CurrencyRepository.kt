@@ -41,6 +41,12 @@ class CurrencyRepository(private val dao: CurrencyDao) {
         dao.setStreak(days.coerceAtLeast(0), Clock.System.now().toEpochMilliseconds())
     }
 
+    /** Records that the streak-freeze charge was spent on [date] (ISO). */
+    suspend fun setStreakFreezeUsed(date: String) {
+        ensureInitialized()
+        dao.setStreakFreezeUsed(date, Clock.System.now().toEpochMilliseconds())
+    }
+
     fun observePlayerStats(): Flow<PlayerStats> =
         dao.observe().map { balance ->
             val b = balance ?: CurrencyBalance()
