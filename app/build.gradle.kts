@@ -24,6 +24,23 @@ val revenueCatKey: String? = signingProp("REVENUECAT_API_KEY", "revenueCatKey")
 fun buildConfigStringLiteral(value: String): String =
     "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
+// versionCode: an explicit ANDROID_VERSION_CODE env var wins (manual / CI override);
+// otherwise the git commit count, which only ever grows on this merge-commit workflow.
+// Falls back to 1 when git isn't available (e.g. building from a source archive).
+// providers.exec keeps this configuration-cache compatible.
+val gitCommitCount: Int = runCatching {
+    providers.exec {
+        commandLine("git", "rev-list", "--count", "HEAD")
+        workingDir = rootProject.projectDir
+        isIgnoreExitValue = true
+    }.standardOutput.asText.get().trim().toIntOrNull() ?: 0
+}.getOrDefault(0)
+
+val resolvedVersionCode: Int =
+    System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull()
+        ?: gitCommitCount.takeIf { it > 0 }
+        ?: 1
+
 android {
     namespace = "com.example.questlog"
     compileSdk = 36
@@ -31,7 +48,7 @@ android {
         applicationId = "com.questlog.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        versionCode = resolvedVersionCode
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

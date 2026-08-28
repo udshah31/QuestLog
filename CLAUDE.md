@@ -36,3 +36,6 @@ See `README.md` for architecture.
 - `BuildConfig.REVENUECAT_API_KEY` falls back to a placeholder; a real key comes from the
   `REVENUECAT_API_KEY` env var (CI) or `keystore.properties` `revenueCatKey` (local).
 - `build/` and `.kotlin/` are gitignored; some `.idea/*` files are intentionally tracked.
+- `versionCode` is computed in `app/build.gradle.kts` from `git rev-list --count HEAD` (via
+  `providers.exec`, so it stays config-cache safe); `ANDROID_VERSION_CODE` env var overrides.
+  `deploy-internal.yml` needs its `fetch-depth: 0` for the count to be correct.
