@@ -35,5 +35,16 @@ internal val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+/** v4: daily quest completion tracking. */
+internal val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `quest_completions` (" +
+                "`date` TEXT NOT NULL, `questId` TEXT NOT NULL, `completedAt` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`date`, `questId`))"
+        )
+    }
+}
+
 /** Every migration the app database ships, in order. */
-internal val questLogMigrations: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+internal val questLogMigrations: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)

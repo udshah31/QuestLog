@@ -69,17 +69,34 @@ class ScreenTimeMigrationTest {
     }
 
     @Test
-    fun `migrating 1 to 3 runs the full chain`() = runTest {
+    fun `migrating 1 to 4 runs the full chain`() = runTest {
         helper.createDatabase(1).close()
 
-        val v3 = helper.runMigrationsAndValidate(3, listOf(MIGRATION_1_2, MIGRATION_2_3))
+        val v4 = helper.runMigrationsAndValidate(4, questLogMigrations.toList())
 
-        // currency_balance picked up the v2 columns and screen_time_records the v3 key.
-        v3.execSQL("INSERT INTO currency_balance (id, xp, gold, gems, currentLevel, consecutiveDetoxDays, rewardDate, awardedSavedMsToday, updatedAt) VALUES (1, 0, 0, 0, 1, 0, '2026-08-27', 60000, 0)")
-        val row = v3.queryLongs("SELECT awardedSavedMsToday FROM currency_balance WHERE id = 1").single().single()
-        assertEquals(60_000L, row)
-        assertFalse(v3.queryLongs("SELECT COUNT(*) FROM screen_time_records").single().single() > 0)
+        // v2 columns
+        v4.execSQL("INSERT INTO currency_balance (id, xp, gold, gems, currentLevel, consecutiveDetoxDays, rewardDate, awardedSavedMsToday, updatedAt) VALUES (1, 0, 0, 0, 1, 0, '2026-08-27', 60000, 0)")
+        assertEquals(60_000L, v4.queryLongs("SELECT awardedSavedMsToday FROM currency_balance WHERE id = 1").single().single())
+        // v3 key
+        assertFalse(v4.queryLongs("SELECT COUNT(*) FROM screen_time_records").single().single() > 0)
 
-        v3.close()
+        v4.close()
+    }
+
+    @Test
+    fun `3 to 4 adds quest_completions keyed by date and questId`() = runTest {
+        helper.createDatabase(3).close()
+
+        val v4 = helper.runMigrationsAndValidate(4, listOf(MIGRATION_3_4))
+
+        v4.execSQL("INSERT INTO quest_completions (date, questId, completedAt) VALUES ('2026-08-28', 'digital_fasting', 111)")
+        assertEquals(1L, v4.queryLongs("SELECT COUNT(*) FROM quest_completions").single().single())
+
+        val rejectedDuplicate = runCatching {
+            v4.execSQL("INSERT INTO quest_completions (date, questId, completedAt) VALUES ('2026-08-28', 'digital_fasting', 222)")
+        }.isFailure
+        assertTrue(rejectedDuplicate, "(date, questId) should be the primary key")
+
+        v4.close()
     }
 }

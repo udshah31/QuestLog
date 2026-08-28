@@ -34,6 +34,7 @@ private class StubInventoryDao : InventoryDao {
     override fun getByType(type: ItemType): Flow<List<InventoryItem>> = MutableStateFlow(emptyList())
     override fun getAll(): Flow<List<InventoryItem>> = MutableStateFlow(emptyList())
     override suspend fun isOwned(itemId: String): Boolean = false
+    override suspend fun countBuildingsAcquiredSince(sinceMs: Long): Int = 0
 }
 
 private class StubScreenTimeDao(savedMsPerApp: List<Long>) : ScreenTimeDao {
@@ -45,6 +46,8 @@ private class StubScreenTimeDao(savedMsPerApp: List<Long>) : ScreenTimeDao {
     override fun getSince(fromDate: String): Flow<List<ScreenTimeRecord>> = MutableStateFlow(emptyList())
     override suspend fun totalSavedMsForDate(date: String): Long = rows.sumOf { it.savedMs }
     override suspend fun totalForegroundMsForDate(date: String): Long = rows.sumOf { it.foregroundMs }
+    override suspend fun foregroundMsForPackageOnDate(packageName: String, date: String): Long =
+        rows.filter { it.packageName == packageName }.sumOf { it.foregroundMs }
 }
 
 class GetDashboardStatsUseCaseTest {

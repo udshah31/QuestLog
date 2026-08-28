@@ -3,8 +3,9 @@ package com.example.questlog.ui.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.questlog.billing.BillingManager
-import com.example.questlog.ui.components.DailyQuest
+import com.questlog.data.repository.DailyQuestRepository
 import com.questlog.domain.model.CityTile
+import com.questlog.domain.model.DailyQuest
 import com.questlog.domain.model.PlayerStats
 import com.questlog.domain.usecase.CalculateDetoxRewardsUseCase
 import com.questlog.domain.usecase.DetoxMonitorFlow
@@ -52,56 +53,27 @@ class DashboardViewModel(
     private val calculateDetoxRewards: CalculateDetoxRewardsUseCase,
     private val detoxMonitor: DetoxMonitorFlow,
     private val purchaseBuilding: PurchaseBuildingUseCase,
+    private val dailyQuestRepo: DailyQuestRepository,
     private val billingManager: BillingManager,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(
-        DashboardUiState(
-            dailyQuests = listOf(
-                DailyQuest(
-                    id = "q1",
-                    title = "Digital Fasting",
-                    description = "Stay off Instagram for 60 minutes",
-                    xpReward = 150L,
-                    goldReward = 30L,
-                    isCompleted = false,
-                    icon = "🧘",
-                ),
-                DailyQuest(
-                    id = "q2",
-                    title = "Deep Focus Shield",
-                    description = "Zero doomscroll between 9am - 12pm",
-                    xpReward = 300L,
-                    goldReward = 80L,
-                    isCompleted = true,
-                    icon = "🛡️",
-                ),
-                DailyQuest(
-                    id = "q3",
-                    title = "Sanctuary Builder",
-                    description = "Construct any building in your realm",
-                    xpReward = 200L,
-                    goldReward = 50L,
-                    isCompleted = false,
-                    icon = "🔨",
-                ),
-            )
-        )
-    )
+    private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
-        // Collect reactive domain stats and billing state
+        // Collect reactive domain stats, quests, and billing state
         viewModelScope.launch {
             combine(
                 getDashboardStats(),
+                dailyQuestRepo.observeToday(),
                 billingManager.isPremium,
-            ) { dashboardState, isPremium ->
+            ) { dashboardState, quests, isPremium ->
                 _uiState.update { current ->
                     current.copy(
                         isLoading = false,
                         stats = dashboardState.stats,
                         cityTiles = dashboardState.cityTiles,
+                        dailyQuests = quests,
                         isPremium = isPremium,
                     )
                 }

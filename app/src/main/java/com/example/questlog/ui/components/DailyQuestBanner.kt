@@ -30,16 +30,7 @@ import com.example.questlog.theme.QuestSlateCard
 import com.example.questlog.theme.QuestTextMuted
 import com.example.questlog.theme.QuestTextPrimary
 import com.example.questlog.theme.QuestTextSecondary
-
-data class DailyQuest(
-    val id: String,
-    val title: String,
-    val description: String,
-    val xpReward: Long,
-    val goldReward: Long,
-    val isCompleted: Boolean,
-    val icon: String,
-)
+import com.questlog.domain.model.DailyQuest
 
 @Composable
 fun DailyQuestBanner(

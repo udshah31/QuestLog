@@ -21,4 +21,7 @@ interface InventoryDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM inventory_items WHERE itemId = :itemId)")
     suspend fun isOwned(itemId: String): Boolean
+
+    @Query("SELECT COUNT(*) FROM inventory_items WHERE type = 'BUILDING' AND acquiredAt >= :sinceMs")
+    suspend fun countBuildingsAcquiredSince(sinceMs: Long): Int
 }

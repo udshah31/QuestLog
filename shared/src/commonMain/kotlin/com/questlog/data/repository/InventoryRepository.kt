@@ -40,4 +40,7 @@ class InventoryRepository(private val dao: InventoryDao) {
     }
 
     suspend fun isOwned(itemId: String): Boolean = dao.isOwned(itemId)
+
+    /** How many buildings were constructed at or after [sinceMs]. */
+    suspend fun buildingsAcquiredSince(sinceMs: Long): Int = dao.countBuildingsAcquiredSince(sinceMs)
 }

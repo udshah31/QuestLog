@@ -39,6 +39,8 @@ class FakeScreenTimeDao : ScreenTimeDao {
         records.filter { it.date == date }.sumOf { it.savedMs }
     override suspend fun totalForegroundMsForDate(date: String): Long =
         records.filter { it.date == date }.sumOf { it.foregroundMs }
+    override suspend fun foregroundMsForPackageOnDate(packageName: String, date: String): Long =
+        records.filter { it.date == date && it.packageName == packageName }.sumOf { it.foregroundMs }
 }
 
 class FakeCurrencyDao : CurrencyDao {

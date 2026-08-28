@@ -23,4 +23,7 @@ interface ScreenTimeDao {
 
     @Query("SELECT COALESCE(SUM(foregroundMs), 0) FROM screen_time_records WHERE date = :date")
     suspend fun totalForegroundMsForDate(date: String): Long
+
+    @Query("SELECT COALESCE(SUM(foregroundMs), 0) FROM screen_time_records WHERE date = :date AND packageName = :packageName")
+    suspend fun foregroundMsForPackageOnDate(packageName: String, date: String): Long
 }
