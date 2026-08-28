@@ -73,11 +73,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-    // ── Navigation3 ──────────────────────────────────────────────────────────
-    implementation(libs.androidx.navigation3.ui)
-    implementation(libs.androidx.navigation3.runtime)
-    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
-
     // ── Koin DI ──────────────────────────────────────────────────────────────
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
