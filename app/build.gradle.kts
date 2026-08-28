@@ -16,6 +16,14 @@ val keystoreProperties = Properties().apply {
 fun signingProp(env: String, key: String): String? =
     (System.getenv(env) ?: keystoreProperties.getProperty(key))?.takeIf { it.isNotBlank() }
 
+// RevenueCat SDK key: CI passes it as the REVENUECAT_API_KEY env var (see deploy-internal.yml);
+// locally it can go in keystore.properties as `revenueCatKey`. Falls back to a placeholder so
+// un-configured builds still compile.
+val revenueCatKey: String? = signingProp("REVENUECAT_API_KEY", "revenueCatKey")
+
+fun buildConfigStringLiteral(value: String): String =
+    "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
 android {
     namespace = "com.example.questlog"
     compileSdk = 36
@@ -42,13 +50,20 @@ android {
 
     buildTypes {
         debug {
-            // RevenueCat sandbox API key injected via local.properties or CI secret
-            buildConfigField("String", "REVENUECAT_API_KEY", "\"REPLACE_WITH_RC_SANDBOX_KEY\"")
+            buildConfigField(
+                "String",
+                "REVENUECAT_API_KEY",
+                buildConfigStringLiteral(revenueCatKey ?: "REPLACE_WITH_RC_SANDBOX_KEY"),
+            )
         }
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            buildConfigField("String", "REVENUECAT_API_KEY", "\"REPLACE_WITH_RC_PROD_KEY\"")
+            buildConfigField(
+                "String",
+                "REVENUECAT_API_KEY",
+                buildConfigStringLiteral(revenueCatKey ?: "REPLACE_WITH_RC_PROD_KEY"),
+            )
             // Attach the release signing config only when a keystore was actually resolved.
             signingConfigs.getByName("release").takeIf { it.storeFile != null }?.let { signingConfig = it }
         }

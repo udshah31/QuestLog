@@ -33,5 +33,6 @@ See `README.md` for architecture.
 - `currency_balance` is a single row (`id = 1`); every write path calls `CurrencyRepository.ensureInitialized()` (an `INSERT OR IGNORE`) first, or the `UPDATE` silently no-ops on a fresh install.
 - The detox reward is idempotent per day — a high-water mark in `currency_balance.rewardDate` / `awardedSavedMsToday`. Never re-add the full daily total.
 - `screen_time_records` PK is `(packageName, date)` — one row per app per day.
-- `BuildConfig.REVENUECAT_API_KEY` is a placeholder string, not a real key.
+- `BuildConfig.REVENUECAT_API_KEY` falls back to a placeholder; a real key comes from the
+  `REVENUECAT_API_KEY` env var (CI) or `keystore.properties` `revenueCatKey` (local).
 - `build/` and `.kotlin/` are gitignored; some `.idea/*` files are intentionally tracked.
