@@ -7,15 +7,15 @@ import com.example.questlog.ui.components.DailyQuest
 import com.questlog.domain.model.CityTile
 import com.questlog.domain.model.PlayerStats
 import com.questlog.domain.usecase.CalculateDetoxRewardsUseCase
+import com.questlog.domain.usecase.DetoxMonitorFlow
 import com.questlog.domain.usecase.GetDashboardStatsUseCase
 import com.questlog.domain.usecase.PurchaseBuildingUseCase
 import com.questlog.domain.usecase.PurchaseResult
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -50,6 +50,7 @@ sealed interface DashboardIntent {
 class DashboardViewModel(
     private val getDashboardStats: GetDashboardStatsUseCase,
     private val calculateDetoxRewards: CalculateDetoxRewardsUseCase,
+    private val detoxMonitor: DetoxMonitorFlow,
     private val purchaseBuilding: PurchaseBuildingUseCase,
     private val billingManager: BillingManager,
 ) : ViewModel() {
@@ -107,8 +108,13 @@ class DashboardViewModel(
             }.collect {}
         }
 
-        // Trigger initial calculation
-        onIntent(DashboardIntent.Refresh)
+        // Poll screen-time in the background: an initial tick on start, then every
+        // interval. Results reach the UI reactively via getDashboardStats() above.
+        viewModelScope.launch {
+            detoxMonitor()
+                .catch { /* keep the dashboard alive if the monitor ever fails hard */ }
+                .collect {}
+        }
     }
 
     fun onIntent(intent: DashboardIntent) {

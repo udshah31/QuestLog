@@ -36,7 +36,10 @@ val sharedModule = module {
             flaggedPackages = defaultFlaggedPackages,
         )
     }
-    factory { DetoxMonitorFlow(calculateDetoxRewards = get()) }
+    factory {
+        val detox = get<CalculateDetoxRewardsUseCase>()
+        DetoxMonitorFlow(runDetoxCheck = { detox() })
+    }
     factory { GetDashboardStatsUseCase(currencyRepo = get(), inventoryRepo = get(), screenTimeRepo = get()) }
     factory { PurchaseBuildingUseCase(currencyRepo = get(), inventoryRepo = get()) }
 }
