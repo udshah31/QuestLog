@@ -2,7 +2,6 @@ package com.questlog.domain.usecase
 
 import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.InventoryRepository
-import com.questlog.data.repository.ScreenTimeRepository
 import com.questlog.domain.model.CityTile
 import com.questlog.domain.model.PlayerStats
 import kotlinx.coroutines.flow.Flow
@@ -16,14 +15,12 @@ data class DashboardState(
 class GetDashboardStatsUseCase(
     private val currencyRepo: CurrencyRepository,
     private val inventoryRepo: InventoryRepository,
-    private val screenTimeRepo: ScreenTimeRepository,
 ) {
     operator fun invoke(): Flow<DashboardState> =
         combine(
             currencyRepo.observePlayerStats(),
             inventoryRepo.observeBuildings(),
-            screenTimeRepo.observeTodaySavedMs(),
-        ) { stats, tiles, todaySavedMs ->
-            DashboardState(stats.copy(todaySavedMs = todaySavedMs), tiles)
+        ) { stats, tiles ->
+            DashboardState(stats, tiles)
         }
 }

@@ -69,20 +69,21 @@ class ScreenTimeMigrationTest {
     }
 
     @Test
-    fun `migrating 1 to 5 runs the full chain`() = runTest {
+    fun `migrating 1 to 6 runs the full chain`() = runTest {
         helper.createDatabase(1).close()
 
-        val v5 = helper.runMigrationsAndValidate(5, questLogMigrations.toList())
+        val v6 = helper.runMigrationsAndValidate(6, questLogMigrations.toList())
 
         // v2 columns present, v5 dropped currentLevel
-        v5.execSQL("INSERT INTO currency_balance (id, xp, gold, gems, consecutiveDetoxDays, rewardDate, awardedSavedMsToday, updatedAt) VALUES (1, 0, 0, 0, 0, '2026-08-27', 60000, 0)")
-        assertEquals(60_000L, v5.queryLongs("SELECT awardedSavedMsToday FROM currency_balance WHERE id = 1").single().single())
-        // v3 key
-        assertFalse(v5.queryLongs("SELECT COUNT(*) FROM screen_time_records").single().single() > 0)
+        v6.execSQL("INSERT INTO currency_balance (id, xp, gold, gems, consecutiveDetoxDays, rewardDate, awardedSavedMsToday, updatedAt) VALUES (1, 0, 0, 0, 0, '2026-08-27', 60000, 0)")
+        assertEquals(60_000L, v6.queryLongs("SELECT awardedSavedMsToday FROM currency_balance WHERE id = 1").single().single())
+        // v3 key + v6 dropped savedMs
+        v6.execSQL("INSERT INTO screen_time_records (packageName, date, foregroundMs) VALUES ('com.instagram.android', '2026-08-27', 123)")
+        assertEquals(123L, v6.queryLongs("SELECT foregroundMs FROM screen_time_records").single().single())
         // v4 table
-        assertEquals(0L, v5.queryLongs("SELECT COUNT(*) FROM quest_completions").single().single())
+        assertEquals(0L, v6.queryLongs("SELECT COUNT(*) FROM quest_completions").single().single())
 
-        v5.close()
+        v6.close()
     }
 
     @Test
@@ -97,6 +98,20 @@ class ScreenTimeMigrationTest {
         assertTrue(columnGone, "currentLevel should no longer exist after v5")
 
         v5.close()
+    }
+
+    @Test
+    fun `5 to 6 drops the per-app savedMs column`() = runTest {
+        helper.createDatabase(5).close()
+
+        val v6 = helper.runMigrationsAndValidate(6, listOf(MIGRATION_5_6))
+
+        val columnGone = runCatching {
+            v6.execSQL("SELECT savedMs FROM screen_time_records")
+        }.isFailure
+        assertTrue(columnGone, "savedMs should no longer exist after v6")
+
+        v6.close()
     }
 
     @Test
