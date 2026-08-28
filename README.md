@@ -203,5 +203,7 @@ unsigned AAB and skips the upload.
    For local release builds, put the same values in a gitignored `keystore.properties` at
    the repo root: `storeFile`, `storePassword`, `keyAlias`, `keyPassword`, `revenueCatKey`.
 
-4. **Bump `versionCode`** in `app/build.gradle.kts` before each release — Play rejects a
-   reused code.
+`versionCode` is derived automatically from the git commit count (strictly increasing on
+this merge-commit workflow), so no manual bump is needed. Override it for a one-off with
+the `ANDROID_VERSION_CODE` env var. Bump `versionName` in `app/build.gradle.kts` by hand
+when you want a new user-facing version string.
