@@ -69,18 +69,34 @@ class ScreenTimeMigrationTest {
     }
 
     @Test
-    fun `migrating 1 to 4 runs the full chain`() = runTest {
+    fun `migrating 1 to 5 runs the full chain`() = runTest {
         helper.createDatabase(1).close()
 
-        val v4 = helper.runMigrationsAndValidate(4, questLogMigrations.toList())
+        val v5 = helper.runMigrationsAndValidate(5, questLogMigrations.toList())
 
-        // v2 columns
-        v4.execSQL("INSERT INTO currency_balance (id, xp, gold, gems, currentLevel, consecutiveDetoxDays, rewardDate, awardedSavedMsToday, updatedAt) VALUES (1, 0, 0, 0, 1, 0, '2026-08-27', 60000, 0)")
-        assertEquals(60_000L, v4.queryLongs("SELECT awardedSavedMsToday FROM currency_balance WHERE id = 1").single().single())
+        // v2 columns present, v5 dropped currentLevel
+        v5.execSQL("INSERT INTO currency_balance (id, xp, gold, gems, consecutiveDetoxDays, rewardDate, awardedSavedMsToday, updatedAt) VALUES (1, 0, 0, 0, 0, '2026-08-27', 60000, 0)")
+        assertEquals(60_000L, v5.queryLongs("SELECT awardedSavedMsToday FROM currency_balance WHERE id = 1").single().single())
         // v3 key
-        assertFalse(v4.queryLongs("SELECT COUNT(*) FROM screen_time_records").single().single() > 0)
+        assertFalse(v5.queryLongs("SELECT COUNT(*) FROM screen_time_records").single().single() > 0)
+        // v4 table
+        assertEquals(0L, v5.queryLongs("SELECT COUNT(*) FROM quest_completions").single().single())
 
-        v4.close()
+        v5.close()
+    }
+
+    @Test
+    fun `4 to 5 drops the unused currentLevel column`() = runTest {
+        helper.createDatabase(4).close()
+
+        val v5 = helper.runMigrationsAndValidate(5, listOf(MIGRATION_4_5))
+
+        val columnGone = runCatching {
+            v5.execSQL("SELECT currentLevel FROM currency_balance")
+        }.isFailure
+        assertTrue(columnGone, "currentLevel should no longer exist after v5")
+
+        v5.close()
     }
 
     @Test

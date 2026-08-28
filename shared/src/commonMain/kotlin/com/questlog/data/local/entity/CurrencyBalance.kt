@@ -13,7 +13,6 @@ data class CurrencyBalance(
     val xp: Long = 0L,
     val gold: Long = 0L,
     val gems: Long = 0L,
-    val currentLevel: Int = 1,
     val consecutiveDetoxDays: Int = 0,
     /** Local date ("yyyy-MM-dd") that [awardedSavedMsToday] applies to; "" before the first award. */
     val rewardDate: String = "",

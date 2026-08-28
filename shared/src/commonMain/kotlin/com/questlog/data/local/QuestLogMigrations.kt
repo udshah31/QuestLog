@@ -46,5 +46,13 @@ internal val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
+/** v5: drop the unused currency_balance.currentLevel column (level is derived from xp). */
+internal val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `currency_balance` DROP COLUMN `currentLevel`")
+    }
+}
+
 /** Every migration the app database ships, in order. */
-internal val questLogMigrations: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+internal val questLogMigrations: Array<Migration> =
+    arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
