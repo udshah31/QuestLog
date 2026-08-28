@@ -3,12 +3,15 @@ package com.example.questlog.ui.dashboard
 import com.example.questlog.billing.BillingManager
 import com.questlog.data.local.dao.CurrencyDao
 import com.questlog.data.local.dao.InventoryDao
+import com.questlog.data.local.dao.QuestDao
 import com.questlog.data.local.dao.ScreenTimeDao
 import com.questlog.data.local.entity.CurrencyBalance
 import com.questlog.data.local.entity.InventoryItem
 import com.questlog.data.local.entity.ItemType
+import com.questlog.data.local.entity.QuestCompletion
 import com.questlog.data.local.entity.ScreenTimeRecord
 import com.questlog.data.repository.CurrencyRepository
+import com.questlog.data.repository.DailyQuestRepository
 import com.questlog.data.repository.InventoryRepository
 import com.questlog.data.repository.ScreenTimeRepository
 import com.questlog.domain.model.CityTile
@@ -43,6 +46,8 @@ class FakeScreenTimeDao : ScreenTimeDao {
     override fun getSince(fromDate: String): Flow<List<ScreenTimeRecord>> = MutableStateFlow(records)
     override suspend fun totalSavedMsForDate(date: String): Long = records.sumOf { it.savedMs }
     override suspend fun totalForegroundMsForDate(date: String): Long = records.sumOf { it.foregroundMs }
+    override suspend fun foregroundMsForPackageOnDate(packageName: String, date: String): Long =
+        records.filter { it.packageName == packageName }.sumOf { it.foregroundMs }
 }
 
 class FakeCurrencyDao : CurrencyDao {
@@ -73,6 +78,20 @@ class FakeInventoryDao : InventoryDao {
     override fun getByType(type: ItemType): Flow<List<InventoryItem>> = flow
     override fun getAll(): Flow<List<InventoryItem>> = flow
     override suspend fun isOwned(itemId: String): Boolean = items.any { it.itemId == itemId }
+    override suspend fun countBuildingsAcquiredSince(sinceMs: Long): Int =
+        items.count { it.type == ItemType.BUILDING && it.acquiredAt >= sinceMs }
+}
+
+class FakeQuestDao : QuestDao {
+    val completed = linkedSetOf<String>()
+    private val flow = MutableStateFlow<List<String>>(emptyList())
+    override suspend fun insertIfAbsent(completion: QuestCompletion): Long {
+        val added = completed.add(completion.questId)
+        flow.value = completed.toList()
+        return if (added) 1L else -1L
+    }
+    override fun observeCompletedIds(date: String): Flow<List<String>> = flow
+    override suspend fun completedIds(date: String): List<String> = completed.toList()
 }
 
 /** Detox monitor that never emits — keeps the polling loop out of tests that don't exercise it. */
@@ -115,6 +134,7 @@ class DashboardViewModelTest {
             calculateDetoxRewards = calculateDetox,
             detoxMonitor = silentMonitor(),
             purchaseBuilding = purchaseBuilding,
+            dailyQuestRepo = DailyQuestRepository(FakeQuestDao()),
             billingManager = billingManager,
         )
 
@@ -142,6 +162,7 @@ class DashboardViewModelTest {
             calculateDetoxRewards = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, setOf("com.instagram.android")),
             detoxMonitor = silentMonitor(),
             purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),
+            dailyQuestRepo = DailyQuestRepository(FakeQuestDao()),
             billingManager = BillingManager(),
         )
 
@@ -168,6 +189,7 @@ class DashboardViewModelTest {
             calculateDetoxRewards = CalculateDetoxRewardsUseCase(ScreenTimeRepository(screenTimeDao, ScreenTimeTracker()), CurrencyRepository(currencyDao), setOf("com.instagram.android")),
             detoxMonitor = silentMonitor(),
             purchaseBuilding = PurchaseBuildingUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao)),
+            dailyQuestRepo = DailyQuestRepository(FakeQuestDao()),
             billingManager = BillingManager(),
         )
 
@@ -200,6 +222,7 @@ class DashboardViewModelTest {
             calculateDetoxRewards = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, setOf("com.instagram.android")),
             detoxMonitor = monitor,
             purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),
+            dailyQuestRepo = DailyQuestRepository(FakeQuestDao()),
             billingManager = BillingManager(),
         )
 

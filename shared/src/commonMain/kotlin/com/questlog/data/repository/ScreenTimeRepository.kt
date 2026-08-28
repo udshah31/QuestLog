@@ -54,5 +54,19 @@ open class ScreenTimeRepository(
     /** Total flagged-app foreground milliseconds recorded for [date]. */
     open suspend fun totalForegroundMs(date: String): Long = dao.totalForegroundMsForDate(date)
 
+    /** Foreground milliseconds for a single [packageName] on [date]. */
+    open suspend fun foregroundMsForPackageOnDate(packageName: String, date: String): Long =
+        dao.foregroundMsForPackageOnDate(packageName, date)
+
+    /** Live-queries the tracker for combined [flaggedPackages] foreground time in [startMs, endMs). */
+    open suspend fun flaggedForegroundInWindow(
+        startMs: Long,
+        endMs: Long,
+        flaggedPackages: Set<String>,
+    ): Long =
+        tracker.getUsageForPeriod(startMs, endMs)
+            .filter { it.packageName in flaggedPackages }
+            .sumOf { it.totalForegroundMs }
+
     fun isPermissionGranted(): Boolean = tracker.isPermissionGranted()
 }

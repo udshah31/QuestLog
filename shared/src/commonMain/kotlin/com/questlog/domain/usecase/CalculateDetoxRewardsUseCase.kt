@@ -32,6 +32,7 @@ class CalculateDetoxRewardsUseCase(
     private val currencyRepo: CurrencyRepository,
     private val flaggedPackages: Set<String>,
     private val dailyFlaggedBudgetMs: Long = 60 * 60_000L,
+    private val evaluateDailyQuests: suspend () -> Unit = {},
 ) {
     suspend operator fun invoke(): DetoxMetrics {
         val tz = TimeZone.currentSystemDefault()
@@ -74,7 +75,10 @@ class CalculateDetoxRewardsUseCase(
         }
         currencyRepo.setDailyAward(todayKey, cumulativeSavedMs)
 
-        // 4. Re-read updated stats
+        // 4. Evaluate daily quests against the freshly-persisted data (auto-grants rewards)
+        evaluateDailyQuests()
+
+        // 5. Re-read updated stats
         val stats = currencyRepo.observePlayerStats(savedMs).first()
 
         return DetoxMetrics(

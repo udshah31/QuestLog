@@ -8,9 +8,11 @@ import androidx.room.TypeConverters
 import com.questlog.data.local.converter.ItemTypeConverter
 import com.questlog.data.local.dao.CurrencyDao
 import com.questlog.data.local.dao.InventoryDao
+import com.questlog.data.local.dao.QuestDao
 import com.questlog.data.local.dao.ScreenTimeDao
 import com.questlog.data.local.entity.CurrencyBalance
 import com.questlog.data.local.entity.InventoryItem
+import com.questlog.data.local.entity.QuestCompletion
 import com.questlog.data.local.entity.ScreenTimeRecord
 
 @Database(
@@ -18,8 +20,9 @@ import com.questlog.data.local.entity.ScreenTimeRecord
         ScreenTimeRecord::class,
         CurrencyBalance::class,
         InventoryItem::class,
+        QuestCompletion::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @ConstructedBy(QuestLogDatabaseConstructor::class)
@@ -28,6 +31,7 @@ abstract class QuestLogDatabase : RoomDatabase() {
     abstract fun screenTimeDao(): ScreenTimeDao
     abstract fun currencyDao(): CurrencyDao
     abstract fun inventoryDao(): InventoryDao
+    abstract fun questDao(): QuestDao
 
     companion object {
         const val DB_NAME = "questlog.db"
