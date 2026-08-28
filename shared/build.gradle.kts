@@ -9,6 +9,11 @@ plugins {
 kotlin {
     jvmToolchain(21)
 
+    // The Room @Database + platform trackers use expect/actual classes (still Beta).
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     // Android target — AGP 9 KMP library plugin (single-variant)
     androidLibrary {
         namespace = "com.questlog.shared"
