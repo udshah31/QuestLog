@@ -35,6 +35,12 @@ class CurrencyRepository(private val dao: CurrencyDao) {
         dao.updateDailyAward(date, awardedSavedMs, Clock.System.now().toEpochMilliseconds())
     }
 
+    /** Sets the consecutive-detox-day count (0 = streak broken). */
+    suspend fun setStreak(days: Int) {
+        ensureInitialized()
+        dao.setStreak(days.coerceAtLeast(0), Clock.System.now().toEpochMilliseconds())
+    }
+
     fun observePlayerStats(todaySavedMs: Long = 0L): Flow<PlayerStats> =
         dao.observe().map { balance ->
             val b = balance ?: CurrencyBalance()

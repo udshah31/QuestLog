@@ -51,5 +51,8 @@ open class ScreenTimeRepository(
     fun observeTodaySavedMs(): Flow<Long> =
         dao.getByDate(today()).map { records -> records.sumOf { it.savedMs } }
 
+    /** Total flagged-app foreground milliseconds recorded for [date]. */
+    open suspend fun totalForegroundMs(date: String): Long = dao.totalForegroundMsForDate(date)
+
     fun isPermissionGranted(): Boolean = tracker.isPermissionGranted()
 }

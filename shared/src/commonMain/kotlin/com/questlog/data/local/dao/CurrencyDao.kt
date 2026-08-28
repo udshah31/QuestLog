@@ -37,4 +37,7 @@ interface CurrencyDao {
         WHERE id = 1
     """)
     suspend fun updateDailyAward(date: String, awardedSavedMs: Long, now: Long)
+
+    @Query("UPDATE currency_balance SET consecutiveDetoxDays = :days, updatedAt = :now WHERE id = 1")
+    suspend fun setStreak(days: Int, now: Long)
 }

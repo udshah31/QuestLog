@@ -9,6 +9,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.daysUntil
 import kotlinx.datetime.toLocalDateTime
 
 /**
@@ -20,11 +21,17 @@ import kotlinx.datetime.toLocalDateTime
  *
  * The daily reward is idempotent: re-running this (manual refresh, periodic monitor)
  * only ever grants the increase in saved time, never the whole daily total again.
+ *
+ * On a day rollover it also advances the detox streak: each calendar day since the last
+ * run whose flagged-app foreground time stayed within [dailyFlaggedBudgetMs] adds to
+ * [com.questlog.data.local.entity.CurrencyBalance.consecutiveDetoxDays]; the first day
+ * over budget resets it.
  */
 class CalculateDetoxRewardsUseCase(
     private val screenTimeRepo: ScreenTimeRepository,
     private val currencyRepo: CurrencyRepository,
     private val flaggedPackages: Set<String>,
+    private val dailyFlaggedBudgetMs: Long = 60 * 60_000L,
 ) {
     suspend operator fun invoke(): DetoxMetrics {
         val tz = TimeZone.currentSystemDefault()
@@ -47,7 +54,15 @@ class CalculateDetoxRewardsUseCase(
             if (balance?.rewardDate == todayKey) balance.awardedSavedMsToday else 0L
         val cumulativeSavedMs = maxOf(savedMs, alreadyRewardedMs)
 
-        val multiplier = TimeConversion.streakMultiplier(balance?.consecutiveDetoxDays ?: 0)
+        // Advance the streak once per day, the first time we run after midnight.
+        var streak = balance?.consecutiveDetoxDays ?: 0
+        val lastDay = balance?.rewardDate
+        if (!lastDay.isNullOrEmpty() && lastDay != todayKey) {
+            streak = evaluateStreak(lastDay, today, streak)
+            currencyRepo.setStreak(streak)
+        }
+
+        val multiplier = TimeConversion.streakMultiplier(streak)
         val xpDelta = TimeConversion.xpEarned(cumulativeSavedMs, multiplier) -
             TimeConversion.xpEarned(alreadyRewardedMs, multiplier)
         val goldDelta = TimeConversion.goldEarned(cumulativeSavedMs, multiplier) -
@@ -71,5 +86,20 @@ class CalculateDetoxRewardsUseCase(
             consecutiveDetoxDays = stats.consecutiveDetoxDays,
             streakMultiplier = multiplier,
         )
+    }
+
+    /**
+     * Streak after the rollover from [lastDayKey] to [today]. Every calendar day in
+     * `[lastDayKey, today)` that stayed within budget adds one; a day over budget resets
+     * to zero. Days with no records (phone-free) count as within budget.
+     */
+    private suspend fun evaluateStreak(lastDayKey: String, today: LocalDate, currentStreak: Int): Int {
+        val lastDay = runCatching { LocalDate.parse(lastDayKey) }.getOrNull() ?: return currentStreak
+        val gapDays = lastDay.daysUntil(today)
+        if (gapDays <= 0) return currentStreak
+
+        val lastDayWithinBudget = screenTimeRepo.totalForegroundMs(lastDayKey) <= dailyFlaggedBudgetMs
+        val phoneFreeGapDays = gapDays - 1 // days strictly between lastDay and today have no records
+        return if (lastDayWithinBudget) currentStreak + gapDays else phoneFreeGapDays
     }
 }
