@@ -153,7 +153,7 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             // 1. Stats & Progress Card
-            StatsCard(stats = uiState.stats)
+            StatsCard(stats = uiState.stats, isPremium = uiState.isPremium)
 
             // 2. Daily Quests
             DailyQuestBanner(quests = uiState.dailyQuests)

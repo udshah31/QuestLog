@@ -55,7 +55,7 @@ flowchart TD
 | `domain/usecase` | `CalculateDetoxRewardsUseCase`, `EvaluateDailyQuestsUseCase`, `DetoxMonitorFlow`, `GetDashboardStatsUseCase`, `PurchaseBuildingUseCase` |
 | `data/repository` | `ScreenTimeRepository`, `CurrencyRepository`, `InventoryRepository`, `DailyQuestRepository` |
 | `data/local` | `QuestLogDatabase` (`@ConstructedBy`, bundled SQLite driver) + 4 entities / DAOs, `QuestLogMigrations`, `ItemTypeConverter` |
-| `util` | `TimeConversion` (reward / level math), `DetoxBudget` (saved-time formula) — pure, fully unit-tested |
+| `util` | `TimeConversion` (reward / level math), `DetoxBudget` (saved-time formula), `StreakFreeze` (Pro streak-freeze recharge rule) — pure, fully unit-tested |
 | `di` | `sharedModule` + `platformModule` (Koin) |
 
 ## The core loop
@@ -108,12 +108,12 @@ midnight (completions are keyed by date). Definitions live in `domain/quest/Ques
 
 ## Persistence
 
-One SQLite database, `questlog.db` (schema **v6**, migrations `1→…→6` in
+One SQLite database, `questlog.db` (schema **v7**, migrations `1→…→7` in
 `data/local/QuestLogMigrations.kt`, wired by `DatabaseFactory` in `androidMain`).
 
 | Table | Key | Holds |
 |---|---|---|
-| `currency_balance` | `id = 1` (single row) | `xp`, `gold`, `gems`, `consecutiveDetoxDays`, `rewardDate`, `awardedSavedMsToday` |
+| `currency_balance` | `id = 1` (single row) | `xp`, `gold`, `gems`, `consecutiveDetoxDays`, `rewardDate`, `awardedSavedMsToday`, `streakFreezeLastUsed` |
 | `screen_time_records` | `(packageName, date)` | `foregroundMs` — one row per app per day |
 | `inventory_items` | `itemId` | `type`, `tier`, `isPremium`, `acquiredAt` |
 | `quest_completions` | `(date, questId)` | `completedAt` — a row means the quest was completed and rewarded that day |
@@ -161,6 +161,9 @@ are wired into Gradle yet).
 - **Budgets / thresholds** are constructor params with defaults: the 90‑minute saved-time
   budget (`ScreenTimeRepository`), the 60‑minute streak budget
   (`CalculateDetoxRewardsUseCase`), and the quest constants in `QuestCatalog`.
+- **Pro perks** (active while `BillingManager.isPremium`): a 2× multiplier on detox-time
+  XP + gold (stacks with the streak multiplier), and a Streak Freeze Shield that protects
+  one over-budget day per 7 days (`StreakFreeze.COOLDOWN_DAYS`).
 - **Usage access**: the app needs the `PACKAGE_USAGE_STATS` special permission,
   granted by the user in *Settings → Apps → Special app access → Usage access*.
 - **RevenueCat**: `BuildConfig.REVENUECAT_API_KEY` is a placeholder — inject a real

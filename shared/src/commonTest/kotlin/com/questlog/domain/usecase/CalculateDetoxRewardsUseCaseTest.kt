@@ -68,6 +68,10 @@ class FakeCurrencyDao : CurrencyDao {
         balance = balance.copy(consecutiveDetoxDays = days, updatedAt = now)
         flow.value = balance
     }
+    override suspend fun setStreakFreezeUsed(date: String, now: Long) {
+        balance = balance.copy(streakFreezeLastUsed = date, updatedAt = now)
+        flow.value = balance
+    }
 }
 
 /**
@@ -180,8 +184,43 @@ class CalculateDetoxRewardsUseCaseTest {
         assertEquals(500L, currencyDao.balance.xp)
     }
 
-    private fun useCaseFor(repo: ScreenTimeRepository, currencyRepo: CurrencyRepository) =
-        CalculateDetoxRewardsUseCase(repo, currencyRepo, setOf("com.instagram.android"))
+    @Test
+    fun `premium doubles the detox XP and gold`() = runTest {
+        val currencyDao = FakeCurrencyDao()
+        // 30 min saved, no streak -> base 300 XP / 60 gold; premium -> 600 / 120
+        val repo = StubScreenTimeRepo(savedMs = 30 * 60_000L)
+
+        val metrics = useCaseFor(repo, CurrencyRepository(currencyDao), isPremium = { true })()
+
+        assertEquals(600L, metrics.xpEarned)
+        assertEquals(120L, metrics.goldEarned)
+        assertEquals(600L, currencyDao.balance.xp)
+        assertEquals(120L, currencyDao.balance.gold)
+    }
+
+    @Test
+    fun `premium 2x stacks on top of the streak multiplier`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            // consecutiveDetoxDays = 10 -> streak multiplier 2.0x; rewardDate "" -> no rollover
+            balance = balance.copy(consecutiveDetoxDays = 10)
+        }
+        val repo = StubScreenTimeRepo(savedMs = 30 * 60_000L)
+
+        val metrics = useCaseFor(repo, CurrencyRepository(currencyDao), isPremium = { true })()
+
+        // 30 min * 10 XP/min * 2.0 streak * 2.0 premium = 1200
+        assertEquals(1200L, metrics.xpEarned)
+        assertEquals(240L, metrics.goldEarned)
+    }
+
+    private fun useCaseFor(
+        repo: ScreenTimeRepository,
+        currencyRepo: CurrencyRepository,
+        isPremium: () -> Boolean = { false },
+    ) = CalculateDetoxRewardsUseCase(
+        repo, currencyRepo, setOf("com.instagram.android"),
+        isPremium = isPremium,
+    )
 
     // ── streak tracking ──────────────────────────────────────────────────────
 
@@ -255,5 +294,60 @@ class CalculateDetoxRewardsUseCaseTest {
         useCaseFor(repo, CurrencyRepository(currencyDao))()
 
         assertEquals(5, currencyDao.balance.consecutiveDetoxDays) // 2 + (1 under-budget day + 2 empty days)
+    }
+
+    @Test
+    fun `streak freeze preserves a premium user's streak on a missed day`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            balance = balance.copy(rewardDate = daysAgoKey(1), consecutiveDetoxDays = 5, streakFreezeLastUsed = "")
+        }
+        val repo = StubScreenTimeRepo(
+            savedMs = 0L,
+            foregroundByDate = mapOf(daysAgoKey(1) to 90 * 60_000L), // over the 60 min budget
+        )
+
+        useCaseFor(repo, CurrencyRepository(currencyDao), isPremium = { true })()
+
+        assertEquals(5, currencyDao.balance.consecutiveDetoxDays) // preserved, not reset
+        assertEquals(today().toString(), currencyDao.balance.streakFreezeLastUsed) // charge spent
+    }
+
+    @Test
+    fun `streak freeze on cooldown does not save the streak`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            balance = balance.copy(rewardDate = daysAgoKey(1), consecutiveDetoxDays = 5, streakFreezeLastUsed = daysAgoKey(3))
+        }
+        val repo = StubScreenTimeRepo(savedMs = 0L, foregroundByDate = mapOf(daysAgoKey(1) to 90 * 60_000L))
+
+        useCaseFor(repo, CurrencyRepository(currencyDao), isPremium = { true })()
+
+        assertEquals(0, currencyDao.balance.consecutiveDetoxDays)
+        assertEquals(daysAgoKey(3), currencyDao.balance.streakFreezeLastUsed) // unchanged
+    }
+
+    @Test
+    fun `freeze charge is not spent when the streak is already zero`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            balance = balance.copy(rewardDate = daysAgoKey(1), consecutiveDetoxDays = 0, streakFreezeLastUsed = "")
+        }
+        val repo = StubScreenTimeRepo(savedMs = 0L, foregroundByDate = mapOf(daysAgoKey(1) to 90 * 60_000L))
+
+        useCaseFor(repo, CurrencyRepository(currencyDao), isPremium = { true })()
+
+        assertEquals(0, currencyDao.balance.consecutiveDetoxDays) // unchanged
+        assertEquals("", currencyDao.balance.streakFreezeLastUsed) // no charge spent
+    }
+
+    @Test
+    fun `a non-premium user's streak is not frozen`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            balance = balance.copy(rewardDate = daysAgoKey(1), consecutiveDetoxDays = 5, streakFreezeLastUsed = "")
+        }
+        val repo = StubScreenTimeRepo(savedMs = 0L, foregroundByDate = mapOf(daysAgoKey(1) to 90 * 60_000L))
+
+        useCaseFor(repo, CurrencyRepository(currencyDao), isPremium = { false })()
+
+        assertEquals(0, currencyDao.balance.consecutiveDetoxDays)
+        assertEquals("", currencyDao.balance.streakFreezeLastUsed)
     }
 }

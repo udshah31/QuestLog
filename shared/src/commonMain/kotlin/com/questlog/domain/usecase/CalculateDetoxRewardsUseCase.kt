@@ -1,8 +1,10 @@
 package com.questlog.domain.usecase
 
+import com.questlog.data.local.entity.CurrencyBalance
 import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.ScreenTimeRepository
 import com.questlog.domain.model.DetoxMetrics
+import com.questlog.util.StreakFreeze
 import com.questlog.util.TimeConversion
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.Clock
@@ -33,6 +35,7 @@ class CalculateDetoxRewardsUseCase(
     private val flaggedPackages: Set<String>,
     private val dailyFlaggedBudgetMs: Long = 60 * 60_000L,
     private val evaluateDailyQuests: suspend () -> Unit = {},
+    private val isPremium: () -> Boolean = { false },
 ) {
     suspend operator fun invoke(): DetoxMetrics {
         val tz = TimeZone.currentSystemDefault()
@@ -52,15 +55,18 @@ class CalculateDetoxRewardsUseCase(
             if (balance?.rewardDate == todayKey) balance.awardedSavedMsToday else 0L
         val cumulativeSavedMs = maxOf(savedMs, alreadyRewardedMs)
 
+        val premium = isPremium()
+
         // Advance the streak once per day, the first time we run after midnight.
         var streak = balance?.consecutiveDetoxDays ?: 0
         val lastDay = balance?.rewardDate
         if (!lastDay.isNullOrEmpty() && lastDay != todayKey) {
-            streak = evaluateStreak(lastDay, today, streak)
+            streak = evaluateStreak(lastDay, today, streak, balance, premium)
             currencyRepo.setStreak(streak)
         }
 
-        val multiplier = TimeConversion.streakMultiplier(streak)
+        val premiumMultiplier = if (premium) PREMIUM_MULTIPLIER else 1f
+        val multiplier = TimeConversion.streakMultiplier(streak) * premiumMultiplier
         val xpDelta = TimeConversion.xpEarned(cumulativeSavedMs, multiplier) -
             TimeConversion.xpEarned(alreadyRewardedMs, multiplier)
         val goldDelta = TimeConversion.goldEarned(cumulativeSavedMs, multiplier) -
@@ -85,22 +91,43 @@ class CalculateDetoxRewardsUseCase(
             currentLevel = stats.level,
             xpProgress = TimeConversion.xpProgress(stats.xp),
             consecutiveDetoxDays = stats.consecutiveDetoxDays,
-            streakMultiplier = multiplier,
+            streakMultiplier = TimeConversion.streakMultiplier(streak),
         )
     }
 
     /**
      * Streak after the rollover from [lastDayKey] to [today]. Every calendar day in
-     * `[lastDayKey, today)` that stayed within budget adds one; a day over budget resets
-     * to zero. Days with no records (phone-free) count as within budget.
+     * `[lastDayKey, today)` that stayed within budget adds one. A day over budget resets
+     * the streak — unless [premium], there is a positive streak to rescue, and their weekly
+     * freeze charge is available, in which case the missed day is skipped and the charge is
+     * spent. Days with no records (phone-free) always count as within budget.
      */
-    private suspend fun evaluateStreak(lastDayKey: String, today: LocalDate, currentStreak: Int): Int {
+    private suspend fun evaluateStreak(
+        lastDayKey: String,
+        today: LocalDate,
+        currentStreak: Int,
+        balance: CurrencyBalance?,
+        premium: Boolean,
+    ): Int {
         val lastDay = runCatching { LocalDate.parse(lastDayKey) }.getOrNull() ?: return currentStreak
         val gapDays = lastDay.daysUntil(today)
         if (gapDays <= 0) return currentStreak
-
-        val lastDayWithinBudget = screenTimeRepo.totalForegroundMs(lastDayKey) <= dailyFlaggedBudgetMs
         val phoneFreeGapDays = gapDays - 1 // days strictly between lastDay and today have no records
-        return if (lastDayWithinBudget) currentStreak + gapDays else phoneFreeGapDays
+
+        if (screenTimeRepo.totalForegroundMs(lastDayKey) <= dailyFlaggedBudgetMs) {
+            return currentStreak + gapDays
+        }
+        // lastDay was over budget — the streak would reset.
+        if (currentStreak > 0 && premium &&
+            StreakFreeze.isRechargedOn(balance?.streakFreezeLastUsed.orEmpty(), today)
+        ) {
+            currencyRepo.setStreakFreezeUsed(today.toString())
+            return currentStreak + phoneFreeGapDays
+        }
+        return phoneFreeGapDays
+    }
+
+    private companion object {
+        const val PREMIUM_MULTIPLIER = 2f
     }
 }

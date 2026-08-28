@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Faithfully models Room's behaviour for a *fresh install*: the single balance row
@@ -42,6 +45,11 @@ private class FreshInstallCurrencyDao : CurrencyDao {
     override suspend fun setStreak(days: Int, now: Long) {
         val current = state.value ?: return
         state.value = current.copy(consecutiveDetoxDays = days, updatedAt = now)
+    }
+
+    override suspend fun setStreakFreezeUsed(date: String, now: Long) {
+        val current = state.value ?: return
+        state.value = current.copy(streakFreezeLastUsed = date, updatedAt = now)
     }
 }
 
@@ -83,5 +91,20 @@ class CurrencyRepositoryTest {
         val stats = repo.observePlayerStats().first()
         assertEquals(500L, stats.xp)
         assertEquals(300L, stats.gold)
+    }
+
+    @Test
+    fun `streakFreezeReady is true until a charge is spent`() = runTest {
+        val dao = FreshInstallCurrencyDao()
+        val repo = CurrencyRepository(dao)
+        repo.addRewards(1L, 1L) // seeds the row; streakFreezeLastUsed defaults to ""
+
+        assertTrue(repo.observePlayerStats().first().streakFreezeReady)
+
+        val today = kotlinx.datetime.Clock.System.now()
+            .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date.toString()
+        repo.setStreakFreezeUsed(today)
+
+        assertFalse(repo.observePlayerStats().first().streakFreezeReady)
     }
 }

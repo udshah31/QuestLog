@@ -10,4 +10,5 @@ data class PlayerStats(
     val consecutiveDetoxDays: Int,
     val streakMultiplier: Float,
     val todaySavedMs: Long,
+    val streakFreezeReady: Boolean = false,
 )

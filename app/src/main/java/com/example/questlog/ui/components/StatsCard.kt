@@ -46,6 +46,7 @@ import com.questlog.domain.model.PlayerStats
 @Composable
 fun StatsCard(
     stats: PlayerStats,
+    isPremium: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val animatedProgress by animateFloatAsState(
@@ -130,6 +131,17 @@ fun StatsCard(
                     color = QuestAmber,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
+                )
+            }
+        }
+
+        if (isPremium) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PerkChip(text = "⚡ 2× XP", color = QuestGold)
+                PerkChip(
+                    text = if (stats.streakFreezeReady) "🛡️ SHIELD READY" else "🛡️ RECHARGING",
+                    color = if (stats.streakFreezeReady) QuestEmerald else QuestTextMuted,
                 )
             }
         }
@@ -227,5 +239,18 @@ private fun StatMetricItem(
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
         )
+    }
+}
+
+@Composable
+private fun PerkChip(text: String, color: Color) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(color.copy(alpha = 0.15f))
+            .border(1.dp, color.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    ) {
+        Text(text = text, color = color, fontWeight = FontWeight.Bold, fontSize = 10.sp)
     }
 }
