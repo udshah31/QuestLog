@@ -17,3 +17,8 @@ local.properties
 # Build outputs (all modules)
 build/
 .kotlin/
+
+# Release signing — never commit
+keystore.properties
+*.keystore
+*.jks
