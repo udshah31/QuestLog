@@ -5,6 +5,7 @@ import com.questlog.data.local.entity.ScreenTimeRecord
 import com.questlog.domain.model.AppUsage
 import com.questlog.domain.platform.ScreenTimeTracker
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -45,6 +46,10 @@ open class ScreenTimeRepository(
     }
 
     fun observeToday(): Flow<List<ScreenTimeRecord>> = dao.getByDate(today())
+
+    /** Total milliseconds "saved" across all flagged apps so far today. */
+    fun observeTodaySavedMs(): Flow<Long> =
+        dao.getByDate(today()).map { records -> records.sumOf { it.savedMs } }
 
     fun isPermissionGranted(): Boolean = tracker.isPermissionGranted()
 }

@@ -91,7 +91,7 @@ class DashboardViewModelTest {
         val inventoryRepo = InventoryRepository(inventoryDao)
         val screenTimeRepo = ScreenTimeRepository(screenTimeDao, ScreenTimeTracker())
 
-        val getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo)
+        val getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo, screenTimeRepo)
         val calculateDetox = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, setOf("com.instagram.android"))
         val purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo)
         val billingManager = BillingManager()
@@ -123,7 +123,7 @@ class DashboardViewModelTest {
         val screenTimeRepo = ScreenTimeRepository(screenTimeDao, ScreenTimeTracker())
 
         val viewModel = DashboardViewModel(
-            getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo),
+            getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo, screenTimeRepo),
             calculateDetoxRewards = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, setOf("com.instagram.android")),
             purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),
             billingManager = BillingManager(),
@@ -148,7 +148,7 @@ class DashboardViewModelTest {
         val screenTimeDao = FakeScreenTimeDao()
 
         val viewModel = DashboardViewModel(
-            getDashboardStats = GetDashboardStatsUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao)),
+            getDashboardStats = GetDashboardStatsUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao), ScreenTimeRepository(screenTimeDao, ScreenTimeTracker())),
             calculateDetoxRewards = CalculateDetoxRewardsUseCase(ScreenTimeRepository(screenTimeDao, ScreenTimeTracker()), CurrencyRepository(currencyDao), setOf("com.instagram.android")),
             purchaseBuilding = PurchaseBuildingUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao)),
             billingManager = BillingManager(),
