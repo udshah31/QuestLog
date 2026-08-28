@@ -44,7 +44,7 @@ class FakeScreenTimeDao : ScreenTimeDao {
 }
 
 class FakeCurrencyDao : CurrencyDao {
-    var balance = CurrencyBalance(id = 1L, xp = 0L, gold = 0L, gems = 0L, currentLevel = 1, consecutiveDetoxDays = 0, updatedAt = 0L)
+    var balance = CurrencyBalance(id = 1L, xp = 0L, gold = 0L, gems = 0L, consecutiveDetoxDays = 0, updatedAt = 0L)
     val flow = MutableStateFlow<CurrencyBalance?>(balance)
 
     override suspend fun upsert(b: CurrencyBalance) {
