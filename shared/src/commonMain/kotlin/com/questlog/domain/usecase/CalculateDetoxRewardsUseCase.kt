@@ -55,15 +55,17 @@ class CalculateDetoxRewardsUseCase(
             if (balance?.rewardDate == todayKey) balance.awardedSavedMsToday else 0L
         val cumulativeSavedMs = maxOf(savedMs, alreadyRewardedMs)
 
+        val premium = isPremium()
+
         // Advance the streak once per day, the first time we run after midnight.
         var streak = balance?.consecutiveDetoxDays ?: 0
         val lastDay = balance?.rewardDate
         if (!lastDay.isNullOrEmpty() && lastDay != todayKey) {
-            streak = evaluateStreak(lastDay, today, streak, balance)
+            streak = evaluateStreak(lastDay, today, streak, balance, premium)
             currencyRepo.setStreak(streak)
         }
 
-        val premiumMultiplier = if (isPremium()) PREMIUM_MULTIPLIER else 1f
+        val premiumMultiplier = if (premium) PREMIUM_MULTIPLIER else 1f
         val multiplier = TimeConversion.streakMultiplier(streak) * premiumMultiplier
         val xpDelta = TimeConversion.xpEarned(cumulativeSavedMs, multiplier) -
             TimeConversion.xpEarned(alreadyRewardedMs, multiplier)
@@ -96,15 +98,16 @@ class CalculateDetoxRewardsUseCase(
     /**
      * Streak after the rollover from [lastDayKey] to [today]. Every calendar day in
      * `[lastDayKey, today)` that stayed within budget adds one. A day over budget resets
-     * the streak — unless the user is premium and their weekly freeze charge is available,
-     * in which case the missed day is skipped and the charge is spent. Days with no records
-     * (phone-free) always count as within budget.
+     * the streak — unless [premium], there is a positive streak to rescue, and their weekly
+     * freeze charge is available, in which case the missed day is skipped and the charge is
+     * spent. Days with no records (phone-free) always count as within budget.
      */
     private suspend fun evaluateStreak(
         lastDayKey: String,
         today: LocalDate,
         currentStreak: Int,
         balance: CurrencyBalance?,
+        premium: Boolean,
     ): Int {
         val lastDay = runCatching { LocalDate.parse(lastDayKey) }.getOrNull() ?: return currentStreak
         val gapDays = lastDay.daysUntil(today)
@@ -115,7 +118,9 @@ class CalculateDetoxRewardsUseCase(
             return currentStreak + gapDays
         }
         // lastDay was over budget — the streak would reset.
-        if (isPremium() && StreakFreeze.isRechargedOn(balance?.streakFreezeLastUsed.orEmpty(), today)) {
+        if (currentStreak > 0 && premium &&
+            StreakFreeze.isRechargedOn(balance?.streakFreezeLastUsed.orEmpty(), today)
+        ) {
             currencyRepo.setStreakFreezeUsed(today.toString())
             return currentStreak + phoneFreeGapDays
         }

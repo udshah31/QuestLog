@@ -31,6 +31,7 @@ data class DashboardUiState(
         consecutiveDetoxDays = 0,
         streakMultiplier = 1.0f,
         todaySavedMs = 0L,
+        streakFreezeReady = true,
     ),
     val cityTiles: List<CityTile> = emptyList(),
     val dailyQuests: List<DailyQuest> = emptyList(),

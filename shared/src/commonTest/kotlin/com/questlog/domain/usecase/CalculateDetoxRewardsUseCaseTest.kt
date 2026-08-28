@@ -326,6 +326,19 @@ class CalculateDetoxRewardsUseCaseTest {
     }
 
     @Test
+    fun `freeze charge is not spent when the streak is already zero`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            balance = balance.copy(rewardDate = daysAgoKey(1), consecutiveDetoxDays = 0, streakFreezeLastUsed = "")
+        }
+        val repo = StubScreenTimeRepo(savedMs = 0L, foregroundByDate = mapOf(daysAgoKey(1) to 90 * 60_000L))
+
+        useCaseFor(repo, CurrencyRepository(currencyDao), isPremium = { true })()
+
+        assertEquals(0, currencyDao.balance.consecutiveDetoxDays) // unchanged
+        assertEquals("", currencyDao.balance.streakFreezeLastUsed) // no charge spent
+    }
+
+    @Test
     fun `a non-premium user's streak is not frozen`() = runTest {
         val currencyDao = FakeCurrencyDao().apply {
             balance = balance.copy(rewardDate = daysAgoKey(1), consecutiveDetoxDays = 5, streakFreezeLastUsed = "")

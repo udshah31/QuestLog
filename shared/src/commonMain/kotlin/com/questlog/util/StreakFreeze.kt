@@ -13,12 +13,14 @@ object StreakFreeze {
 
     /**
      * True if a freeze charge is available on [today]. [lastUsedKey] is the ISO date the
-     * charge was last spent, or "" if it has never been used. An unparseable value is
-     * treated as available (fail-open, favours the user).
+     * charge was last spent, or "" if it has never been used. Both corruption modes fail
+     * open (favour the user): an unparseable value, and a future-dated value (the device
+     * clock moved backward) are treated as available.
      */
     fun isRechargedOn(lastUsedKey: String, today: LocalDate): Boolean {
         if (lastUsedKey.isEmpty()) return true
         val lastUsed = runCatching { LocalDate.parse(lastUsedKey) }.getOrNull() ?: return true
-        return lastUsed.daysUntil(today) >= COOLDOWN_DAYS
+        val elapsedDays = lastUsed.daysUntil(today)
+        return elapsedDays < 0 || elapsedDays >= COOLDOWN_DAYS
     }
 }

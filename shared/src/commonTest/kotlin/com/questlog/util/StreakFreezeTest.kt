@@ -3,6 +3,7 @@ package com.questlog.util
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -35,5 +36,11 @@ class StreakFreezeTest {
     @Test
     fun `used exactly 7 days ago is recharged`() {
         assertTrue(StreakFreeze.isRechargedOn(daysAgo(7), today))
+    }
+
+    @Test
+    fun `a future-dated last-used key is treated as recharged`() {
+        val future = today.plus(3, DateTimeUnit.DAY).toString()
+        assertTrue(StreakFreeze.isRechargedOn(future, today))
     }
 }
