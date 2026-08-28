@@ -137,12 +137,10 @@ sdk.dir=/path/to/Android/sdk
 | Release bundle | `./gradlew :app:bundleRelease` |
 
 `.github/workflows/ci.yml` runs the two test suites plus `assembleDebug` on every push
-and PR. `deploy-internal.yml` builds an AAB and ships it to the Play internal track on
-push to `main` (gated on the `ANDROID_KEYSTORE_BASE64`,
-`GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, and `REVENUECAT_API_KEY` secrets; no `signingConfigs`
-are wired into Gradle yet).
+and PR. `deploy-internal.yml` builds a signed AAB and ships it to the Play internal track
+on push to `main` — see [Deploy](#deploy).
 
-### Testing approach (~58 tests)
+### Testing approach (~72 tests)
 
 - **Pure logic** (`TimeConversion`, `DetoxBudget`) — exhaustively unit-tested.
 - **Use cases / repositories** — hand-written fake DAOs that model real Room semantics
@@ -166,5 +164,44 @@ are wired into Gradle yet).
   one over-budget day per 7 days (`StreakFreeze.COOLDOWN_DAYS`).
 - **Usage access**: the app needs the `PACKAGE_USAGE_STATS` special permission,
   granted by the user in *Settings → Apps → Special app access → Usage access*.
-- **RevenueCat**: `BuildConfig.REVENUECAT_API_KEY` is a placeholder — inject a real
-  key via `local.properties` or a CI secret before shipping.
+- **RevenueCat**: `BuildConfig.REVENUECAT_API_KEY` falls back to a placeholder; a real key
+  comes from the `REVENUECAT_API_KEY` env var (CI) or `keystore.properties` `revenueCatKey`
+  (local). See [Deploy](#deploy).
+
+## Deploy
+
+`deploy-internal.yml` builds a signed AAB and uploads it to the Play **internal** track on
+every push to `main` (also runnable from the Actions tab). Both the keystore-decode and
+Play-upload steps are guarded — with no secrets configured the workflow still builds an
+unsigned AAB and skips the upload.
+
+**One-time setup:**
+
+1. **Release keystore** — generate once, then store it somewhere safe. Losing it means you
+   can never ship an update:
+
+   ```bash
+   keytool -genkeypair -v -keystore questlog-release.jks -alias questlog \
+     -keyalg RSA -keysize 2048 -validity 10000
+   ```
+
+2. **Play service account** — create one in the Google Cloud console, grant it release
+   access under Play Console → *Users & permissions*, and download its JSON key.
+
+3. **Repo secrets** — `gh secret set <NAME>` (or Settings → Secrets and variables →
+   Actions):
+
+   | Secret | Value |
+   |---|---|
+   | `ANDROID_KEYSTORE_BASE64` | `base64 -i questlog-release.jks` |
+   | `ANDROID_KEYSTORE_PASSWORD` | keystore password from step 1 |
+   | `ANDROID_KEY_ALIAS` | `questlog` |
+   | `ANDROID_KEY_PASSWORD` | key password from step 1 |
+   | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | contents of the step 2 JSON file |
+   | `REVENUECAT_API_KEY` | RevenueCat Android SDK key |
+
+   For local release builds, put the same values in a gitignored `keystore.properties` at
+   the repo root: `storeFile`, `storePassword`, `keyAlias`, `keyPassword`, `revenueCatKey`.
+
+4. **Bump `versionCode`** in `app/build.gradle.kts` before each release — Play rejects a
+   reused code.
