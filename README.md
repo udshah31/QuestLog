@@ -97,14 +97,23 @@ flowchart LR
 
 ## Daily quests
 
-Three fixed quests, evaluated on every detox tick, auto-granted once per day, reset at
-midnight (completions are keyed by date). Definitions live in `domain/quest/QuestCatalog`.
+An 8-quest pool (`domain/quest/QuestCatalog`), of which **3 are active each day**. The active
+set is `questsForDay(date)` — a sliding window over the catalog that advances one slot per
+day, so every quest runs 3 days in every 8 and consecutive days share 2 of 3. It's keyed by
+the local date, so every device shows the same quests for "today". Active quests are
+evaluated on every detox tick, auto-granted once per day, and reset at midnight (completions
+are keyed by date).
 
 | Quest | Completes when | Reward |
 |---|---|---|
 | Digital Fasting | Instagram foreground ≤ 15 min today | 150 XP / 30 gold |
-| Deep Focus Shield | zero flagged-app foreground between 9am–12pm local (only decidable after noon) | 300 XP / 80 gold |
 | Sanctuary Builder | any building constructed today | 200 XP / 50 gold |
+| Deep Focus Shield | zero flagged-app foreground 9am–12pm local (only decidable after noon) | 300 XP / 80 gold |
+| Feed Freeze | Instagram + TikTok + X ≤ 10 min combined today | 200 XP / 50 gold |
+| Century Saver | 60+ min of saved time banked today | 200 XP / 40 gold |
+| Budget Guardian | total flagged-app foreground ≤ 30 min today | 250 XP / 60 gold |
+| Master Builder | 2+ buildings constructed today | 300 XP / 70 gold |
+| Dawn Discipline | zero flagged-app foreground before 9am local (only decidable after 9am) | 150 XP / 30 gold |
 
 ## Persistence
 
@@ -140,7 +149,7 @@ sdk.dir=/path/to/Android/sdk
 and PR. `deploy-internal.yml` builds a signed AAB and ships it to the Play internal track
 on push to `main` — see [Deploy](#deploy).
 
-### Testing approach (~72 tests)
+### Testing approach (~94 tests)
 
 - **Pure logic** (`TimeConversion`, `DetoxBudget`) — exhaustively unit-tested.
 - **Use cases / repositories** — hand-written fake DAOs that model real Room semantics
