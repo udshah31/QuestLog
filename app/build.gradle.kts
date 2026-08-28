@@ -1,9 +1,20 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
+
+// Release signing credentials come from env vars (CI) or a gitignored keystore.properties
+// (local). If neither resolves a keystore, `release` is left unsigned and still builds.
+val keystoreProperties = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) f.inputStream().use(::load)
+}
+fun signingProp(env: String, key: String): String? =
+    (System.getenv(env) ?: keystoreProperties.getProperty(key))?.takeIf { it.isNotBlank() }
 
 android {
     namespace = "com.example.questlog"
@@ -17,6 +28,18 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            val storeFilePath = signingProp("ANDROID_KEYSTORE_FILE", "storeFile")
+            if (storeFilePath != null && file(storeFilePath).exists()) {
+                storeFile = file(storeFilePath)
+                storePassword = signingProp("ANDROID_KEYSTORE_PASSWORD", "storePassword")
+                keyAlias = signingProp("ANDROID_KEY_ALIAS", "keyAlias")
+                keyPassword = signingProp("ANDROID_KEY_PASSWORD", "keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // RevenueCat sandbox API key injected via local.properties or CI secret
@@ -26,6 +49,8 @@ android {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             buildConfigField("String", "REVENUECAT_API_KEY", "\"REPLACE_WITH_RC_PROD_KEY\"")
+            // Attach the release signing config only when a keystore was actually resolved.
+            signingConfigs.getByName("release").takeIf { it.storeFile != null }?.let { signingConfig = it }
         }
     }
     compileOptions {
