@@ -17,18 +17,18 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Run Quality Gate (Unit Tests)
         run: ./gradlew testDebugUnitTest :shared:desktopTest --no-daemon
@@ -59,7 +59,7 @@ jobs:
           changesNotSentForReview: true
 
       - name: Upload Release AAB Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: questlog-release-aab
           path: app/build/outputs/bundle/release/*.aab
