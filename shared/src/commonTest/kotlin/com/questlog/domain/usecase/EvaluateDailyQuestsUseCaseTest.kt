@@ -11,6 +11,7 @@ import com.questlog.data.repository.InventoryRepository
 import com.questlog.data.repository.ScreenTimeRepository
 import com.questlog.domain.platform.ScreenTimeTracker
 import com.questlog.domain.quest.QuestIds
+import com.questlog.domain.quest.questCatalog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -162,6 +163,27 @@ class EvaluateDailyQuestsUseCaseTest {
 
         assertTrue(QuestIds.SANCTUARY_BUILDER in quests.completed)
         assertEquals(200L, currency.balance.xp)
+    }
+
+    /**
+     * Pro-perks constraint (docs/superpowers/specs/2026-08-28-pro-perks-design.md): the 2x Pro
+     * multiplier applies only to detox saved-time rewards, never to the flat daily-quest rewards.
+     * This use case has no premium input by design; this test makes that a loud failure if a
+     * multiplier is ever threaded into the quest grant path.
+     */
+    @Test
+    fun `quest rewards are granted at the flat catalog amount, never multiplier-scaled`() = runTest {
+        val (uc, currency, quests) = useCase(
+            clock = FixedClock(at(13)), // after noon so Deep Focus Shield resolves
+            screenTimeRepo = StubQuestScreenTimeRepo(instagramMs = 0L, windowFlaggedMs = 0L),
+            inventoryDao = FakeInventoryDao(buildingsToday = 1),
+        )
+
+        uc()
+
+        assertEquals(3, quests.completed.size, "all three quests should complete in this run")
+        assertEquals(questCatalog.sumOf { it.xpReward }, currency.balance.xp)
+        assertEquals(questCatalog.sumOf { it.goldReward }, currency.balance.gold)
     }
 
     @Test
