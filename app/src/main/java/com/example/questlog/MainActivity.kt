@@ -9,6 +9,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.questlog.theme.QuestLogTheme
+import com.example.questlog.ui.dashboard.DashboardScreen
+import com.example.questlog.ui.dashboard.DashboardViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -16,7 +19,12 @@ class MainActivity : ComponentActivity() {
 
     enableEdgeToEdge()
     setContent {
-      QuestLogTheme { Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { MainNavigation() } }
+      QuestLogTheme {
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+          val viewModel: DashboardViewModel = koinViewModel()
+          DashboardScreen(viewModel = viewModel)
+        }
+      }
     }
   }
 }

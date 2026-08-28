@@ -41,9 +41,6 @@ class CalculateDetoxRewardsUseCase(
         val todayKey = today.toString() // ISO-8601 "yyyy-MM-dd"
         val startOfDay = today.atStartOfDayIn(tz).toEpochMilliseconds()
 
-        // Make sure the single currency row exists before any UPDATE-based write.
-        currencyRepo.ensureInitialized()
-
         // 1. Fetch & persist screen-time data
         val savedMs = screenTimeRepo.fetchAndPersistToday(flaggedPackages, startOfDay)
 
@@ -79,7 +76,7 @@ class CalculateDetoxRewardsUseCase(
         evaluateDailyQuests()
 
         // 5. Re-read updated stats
-        val stats = currencyRepo.observePlayerStats(savedMs).first()
+        val stats = currencyRepo.observePlayerStats().first()
 
         return DetoxMetrics(
             timeSavedMs = savedMs,

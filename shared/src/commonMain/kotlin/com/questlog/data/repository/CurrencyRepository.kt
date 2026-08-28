@@ -41,7 +41,8 @@ class CurrencyRepository(private val dao: CurrencyDao) {
         dao.setStreak(days.coerceAtLeast(0), Clock.System.now().toEpochMilliseconds())
     }
 
-    fun observePlayerStats(todaySavedMs: Long = 0L): Flow<PlayerStats> =
+    /** [PlayerStats.todaySavedMs] is left at 0 here; callers that show it fill it in themselves. */
+    fun observePlayerStats(): Flow<PlayerStats> =
         dao.observe().map { balance ->
             val b = balance ?: CurrencyBalance()
             val multiplier = TimeConversion.streakMultiplier(b.consecutiveDetoxDays)
@@ -53,7 +54,7 @@ class CurrencyRepository(private val dao: CurrencyDao) {
                 gems = b.gems,
                 consecutiveDetoxDays = b.consecutiveDetoxDays,
                 streakMultiplier = multiplier,
-                todaySavedMs = todaySavedMs,
+                todaySavedMs = 0L,
             )
         }
 }
