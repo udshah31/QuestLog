@@ -27,6 +27,7 @@ See `README.md` for architecture.
 - Migration tests: `MigrationTestHelper` as a plain JVM test in `desktopTest`; schema dir is passed via the `questlog.schemasDir` system property set in `shared/build.gradle.kts`.
 - `ScreenTimeRepository` and `DetoxMonitorFlow` are `open` so tests can stub them — a real `DetoxMonitorFlow` in a `runTest` + `advanceUntilIdle()` hangs (infinite `while(true){ delay() }`).
 - `DashboardViewModelTest` sets `Dispatchers.setMain(StandardTestDispatcher())` before `runTest` so they share a scheduler.
+- Daily quests rotate: 3 of an 8-quest pool are active per day via `questsForDay(date)` (sliding window, `epochDays mod 8`). Quest tests derive the test date from the window they need (`dateWithWindow(...)` helper in `EvaluateDailyQuestsUseCaseTest`) rather than hardcoding one. `DailyQuestRepository` takes an injectable `clock`/`timeZone`.
 
 ## Invariants / gotchas
 

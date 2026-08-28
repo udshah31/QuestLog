@@ -7,6 +7,21 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Rotating daily-quest pool** — the catalog grew from 3 fixed quests to a pool of 8, of
+  which 3 are active each day. `questsForDay(date)` picks them with a sliding window over the
+  catalog that advances one slot per day: every quest runs 3 days in every 8, consecutive
+  days share 2 of 3, and the set is a pure function of the local date (same on every device).
+  Five new quests — Feed Freeze, Century Saver, Budget Guardian, Master Builder, Dawn
+  Discipline — all checked against data the repositories already expose. Auto-grant,
+  once-per-day, and the flat-reward rule are unchanged.
+
+### Changed
+
+- `DailyQuestRepository` takes an injectable `clock` / `timeZone` (matching
+  `EvaluateDailyQuestsUseCase`), so the day's quest set is testable.
+
 ## [1.0.0] - 2026-08-28
 
 First tagged release. QuestLog is a gamified digital-detox Android app — a Kotlin
