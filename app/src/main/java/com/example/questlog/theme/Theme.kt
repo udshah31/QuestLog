@@ -14,6 +14,8 @@ private fun schemeFor(c: QuestColors, dark: Boolean) = if (dark) {
         surface = c.surface, onSurface = c.inkPrimary,
         surfaceVariant = c.surfaceRaised, onSurfaceVariant = c.inkSecondary,
         outline = c.rule, scrim = c.scrim,
+        inverseSurface = c.inkPrimary,
+        inverseOnSurface = c.ground,
     )
 } else {
     lightColorScheme(
@@ -22,6 +24,8 @@ private fun schemeFor(c: QuestColors, dark: Boolean) = if (dark) {
         surface = c.surface, onSurface = c.inkPrimary,
         surfaceVariant = c.surfaceRaised, onSurfaceVariant = c.inkSecondary,
         outline = c.rule, scrim = c.scrim,
+        inverseSurface = c.inkPrimary,
+        inverseOnSurface = c.ground,
     )
 }
 

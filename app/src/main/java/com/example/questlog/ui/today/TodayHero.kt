@@ -17,7 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.questlog.theme.QuestLogTheme
@@ -43,10 +45,11 @@ fun TodayHero(stats: PlayerStats, modifier: Modifier = Modifier) {
     )
     val shownMinutes = if (reduce) targetMinutes else animatedMinutes
     val reclaimed = formatReclaimed(shownMinutes * 60_000L)
+    val stableReclaimed = formatReclaimed(stats.todaySavedMs)
     val ringDescription = buildString {
         append("Reclaimed today: ")
-        reclaimed.hours?.let { append(it).append(" ") }
-        append(reclaimed.minutes)
+        stableReclaimed.hours?.let { append(it).append(" ") }
+        append(stableReclaimed.minutes)
         if (stats.consecutiveDetoxDays > 0) {
             append(", ").append(stats.consecutiveDetoxDays).append(" day streak, ")
             append(formatMultiplier(stats.streakMultiplier)).append(" rewards")
@@ -74,11 +77,12 @@ fun TodayHero(stats: PlayerStats, modifier: Modifier = Modifier) {
             Text(
                 buildAnnotatedString {
                     reclaimed.hours?.let {
-                        withStyle(QuestType.displayItalic.toSpanStyle().copy(color = c.earned)) { append(it) }
+                        withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = c.earned)) { append(it) }
                         append(" ")
                     }
-                    withStyle(QuestType.display.toSpanStyle().copy(color = c.inkPrimary)) { append(reclaimed.minutes) }
+                    withStyle(SpanStyle(color = c.inkPrimary)) { append(reclaimed.minutes) }
                 },
+                style = QuestType.display,
             )
         }
     }

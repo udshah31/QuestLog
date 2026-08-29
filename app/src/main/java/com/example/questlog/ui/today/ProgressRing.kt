@@ -55,9 +55,10 @@ fun ProgressRing(
                 val stroke = Stroke(width = strokeWidth.toPx(), cap = StrokeCap.Round)
                 val inset = strokeWidth.toPx() / 2f
                 val arcSize = Size(size.width - strokeWidth.toPx(), size.height - strokeWidth.toPx())
-                drawArc(
-                    color = c.rule, startAngle = 0f, sweepAngle = 360f, useCenter = false,
-                    topLeft = Offset(inset, inset), size = arcSize, style = stroke,
+                drawCircle(
+                    color = c.rule,
+                    radius = (size.minDimension - strokeWidth.toPx()) / 2f,
+                    style = stroke,
                 )
                 drawArc(
                     color = c.earned, startAngle = -90f, sweepAngle = 360f * swept.value, useCenter = false,

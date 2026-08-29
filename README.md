@@ -156,7 +156,7 @@ sdk.dir=/path/to/Android/sdk
 and PR. `deploy-internal.yml` builds a signed AAB and ships it to the Play internal track
 on push to `main` — see [Deploy](#deploy).
 
-### Testing approach (~94 tests)
+### Testing approach (~99 tests)
 
 - **Pure logic** (`TimeConversion`, `DetoxBudget`) — exhaustively unit-tested.
 - **Use cases / repositories** — hand-written fake DAOs that model real Room semantics

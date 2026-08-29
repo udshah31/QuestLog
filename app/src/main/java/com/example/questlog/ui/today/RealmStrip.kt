@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.questlog.theme.QuestIcons
@@ -39,8 +40,11 @@ fun RealmStrip(tiles: List<CityTile>, onOpen: () -> Unit, modifier: Modifier = M
         modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .clickable(role = Role.Button, onClick = onOpen)
-            .semantics { contentDescription = "Your realm, $built of ${tiles.size} built. Open." }
+            .clickable(onClick = onOpen)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "Your realm, $built of ${tiles.size} built. Open."
+                role = Role.Button
+            }
             .padding(vertical = QuestSpacing.xs),
     ) {
         SectionHeader("Your realm", "$built / ${tiles.size}")

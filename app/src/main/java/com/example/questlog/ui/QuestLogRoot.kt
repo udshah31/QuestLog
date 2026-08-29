@@ -9,7 +9,10 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -36,6 +39,7 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
     val state by viewModel.uiState.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Today) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val stateHolder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     val reduce = reducedMotion()
 
     LaunchedEffect(state.snackbarMessage) {
@@ -63,23 +67,30 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
             },
             label = "screen",
         ) { s ->
-            when (s) {
-                Screen.Today -> TodayScreen(
-                    state = state,
-                    onRefresh = { viewModel.onIntent(DashboardIntent.Refresh) },
-                    onOpenPaywall = { viewModel.onIntent(DashboardIntent.OpenPaywall) },
-                    onOpenRealm = { screen = Screen.Realm },
-                )
-                Screen.Realm -> RealmScreen(
-                    tiles = state.cityTiles,
-                    gold = state.stats.gold,
-                    onBack = { screen = Screen.Today },
-                    onTileClick = { viewModel.onIntent(DashboardIntent.Purchase(it)) },
-                )
+            stateHolder.SaveableStateProvider(s) {
+                when (s) {
+                    Screen.Today -> TodayScreen(
+                        state = state,
+                        onRefresh = { viewModel.onIntent(DashboardIntent.Refresh) },
+                        onOpenPaywall = { viewModel.onIntent(DashboardIntent.OpenPaywall) },
+                        onOpenRealm = { screen = Screen.Realm },
+                    )
+                    Screen.Realm -> RealmScreen(
+                        tiles = state.cityTiles,
+                        gold = state.stats.gold,
+                        onBack = { screen = Screen.Today },
+                        onTileClick = { viewModel.onIntent(DashboardIntent.Purchase(it)) },
+                    )
+                }
             }
         }
 
-        SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+        SnackbarHost(
+            snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .windowInsetsPadding(WindowInsets.safeDrawing),
+        )
 
         if (state.showPaywall) {
             PaywallDialog(

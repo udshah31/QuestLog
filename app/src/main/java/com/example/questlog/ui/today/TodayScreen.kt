@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -16,6 +17,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.questlog.theme.QuestIcons
 import com.example.questlog.theme.QuestLogTheme
@@ -39,7 +42,7 @@ fun TodayScreen(
         modifier = modifier,
         header = {
             Row(
-                Modifier.fillMaxWidth().height(48.dp),
+                Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -53,7 +56,12 @@ fun TodayScreen(
                     } else {
                         Pill("Get Pro", filled = false, onClick = onOpenPaywall)
                     }
-                    IconButton(onClick = onRefresh) {
+                    IconButton(
+                        onClick = onRefresh,
+                        modifier = Modifier.semantics {
+                            contentDescription = if (state.isLoading) "Refreshing" else "Refresh"
+                        },
+                    ) {
                         if (state.isLoading) {
                             CircularProgressIndicator(
                                 Modifier.size(20.dp),
@@ -61,7 +69,7 @@ fun TodayScreen(
                                 strokeWidth = 2.dp,
                             )
                         } else {
-                            Icon(QuestIcons.Refresh, contentDescription = "Refresh", tint = c.inkMuted)
+                            Icon(QuestIcons.Refresh, contentDescription = null, tint = c.inkMuted)
                         }
                     }
                 }
