@@ -3,35 +3,40 @@ package com.example.questlog.theme
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 
-private val RpgColorScheme = darkColorScheme(
-    primary = QuestGold,
-    onPrimary = QuestSlateDark,
-    primaryContainer = QuestGoldDark,
-    onPrimaryContainer = QuestGoldLight,
-    secondary = QuestEmerald,
-    onSecondary = QuestSlateDark,
-    secondaryContainer = QuestEmerald,
-    onSecondaryContainer = QuestEmeraldLight,
-    tertiary = QuestArcane,
-    onTertiary = QuestSlateDark,
-    background = QuestSlateDark,
-    onBackground = QuestTextPrimary,
-    surface = QuestSlateCard,
-    onSurface = QuestTextPrimary,
-    surfaceVariant = QuestSlateBorder,
-    onSurfaceVariant = QuestTextSecondary,
-)
+private fun schemeFor(c: QuestColors, dark: Boolean) = if (dark) {
+    darkColorScheme(
+        primary = c.earned, onPrimary = c.ground,
+        background = c.ground, onBackground = c.inkPrimary,
+        surface = c.surface, onSurface = c.inkPrimary,
+        surfaceVariant = c.surfaceRaised, onSurfaceVariant = c.inkSecondary,
+        outline = c.rule, scrim = c.scrim,
+    )
+} else {
+    lightColorScheme(
+        primary = c.earned, onPrimary = c.ground,
+        background = c.ground, onBackground = c.inkPrimary,
+        surface = c.surface, onSurface = c.inkPrimary,
+        surfaceVariant = c.surfaceRaised, onSurfaceVariant = c.inkSecondary,
+        outline = c.rule, scrim = c.scrim,
+    )
+}
 
 @Composable
 fun QuestLogTheme(
-    darkTheme: Boolean = true, // RPG theme defaults to immersive dark mode
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = RpgColorScheme,
-        typography = Typography,
-        content = content,
-    )
+    val colors = if (darkTheme) questDarkColors else questLightColors
+    CompositionLocalProvider(LocalQuestColors provides colors) {
+        MaterialTheme(
+            colorScheme = schemeFor(colors, darkTheme),
+            typography = QuestTypography,
+            shapes = QuestShapes,
+            content = content,
+        )
+    }
 }
