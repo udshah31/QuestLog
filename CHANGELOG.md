@@ -19,6 +19,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Full UI redesign** (*Nightfall × Monument*) — the single scrolling dashboard
+  becomes a focused **Today** screen with the build grid on its own **Realm**
+  screen. New semantic colour token system (`QuestColors` / `QuestLogTheme`) with
+  matched light and dark palettes, a bundled *Instrument Serif* display face, and
+  emoji removed from all persistent UI. No change to rewards, quests, streaks,
+  billing, or persistence.
 - `DailyQuestRepository` takes an injectable `clock` / `timeZone` (matching
   `EvaluateDailyQuestsUseCase`), so the day's quest set is testable.
 

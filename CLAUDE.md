@@ -18,6 +18,7 @@ See `README.md` for architecture.
 - `shared` package root is `com.questlog`; `app` is `com.example.questlog` (intentional; applicationId is `com.questlog.app`).
 - Repositories are the write chokepoint; UI reads reactively via `GetDashboardStatsUseCase` combining flows — Room writes propagate to the UI automatically, no manual refresh needed.
 - Pure, dependency-free logic goes in `util/TimeConversion` (fully unit-tested).
+- `app` UI: colour comes from `QuestLogTheme.colors` (semantic tokens in `theme/QuestColors.kt`) or `MaterialTheme.colorScheme`, never a raw `Color(...)`. Two screens (`ui/today`, `ui/realm`) hosted by `ui/QuestLogRoot.kt`; no nav library. Display face *Instrument Serif* is bundled in `res/font/`.
 - DB migrations live in `commonMain` (`data/local/QuestLogMigrations.kt`); `DatabaseFactory` (androidMain) wires `*questLogMigrations`.
 
 ## Testing patterns
