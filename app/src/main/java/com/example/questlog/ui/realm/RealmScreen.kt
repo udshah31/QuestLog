@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -16,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextAlign
 import com.example.questlog.theme.QuestIcons
 import com.example.questlog.theme.QuestLogTheme
 import com.example.questlog.theme.QuestSpacing
@@ -67,6 +69,15 @@ fun RealmScreen(
                 RealmTile(tile = tile, onClick = { onTileClick(tile) })
             }
         }
+        Text(
+            text = "Tap a lit tile to build it",
+            style = QuestType.caption,
+            color = c.inkMuted,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = QuestSpacing.md),
+        )
     }
 }
 
