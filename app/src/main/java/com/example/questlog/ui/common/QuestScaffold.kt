@@ -12,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import com.example.questlog.theme.QuestLogTheme
 import com.example.questlog.theme.QuestSpacing
@@ -32,14 +31,12 @@ fun QuestScaffold(
         modifier
             .fillMaxSize()
             .drawBehind {
-                drawRect(c.ground)
                 drawRect(
                     brush = Brush.radialGradient(
-                        colors = listOf(c.groundTop, c.ground),
+                        colorStops = arrayOf(0f to c.groundTop, 0.55f to c.ground, 1f to c.ground),
                         center = Offset(size.width / 2f, 0f),
-                        radius = size.height * 0.9f,
+                        radius = size.height,
                     ),
-                    size = Size(size.width, size.height * 0.6f),
                 )
             }
             .windowInsetsPadding(WindowInsets.systemBars)
