@@ -11,6 +11,7 @@ import com.example.questlog.ui.today.TodayScreen
 import com.example.questlog.ui.today.fakeStats
 import com.example.questlog.ui.today.fakeTiles
 import com.questlog.domain.model.DailyQuest
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -42,7 +43,7 @@ class TodayScreenTest {
         var opened = false
         compose.setContent { QuestLogTheme { TodayScreen(state(), {}, {}, { opened = true }) } }
         compose.onNodeWithContentDescription("Your realm, 3 of 6 built. Open.").performClick()
-        assert(opened)
+        assertTrue(opened)
     }
 
     @Test
@@ -50,6 +51,6 @@ class TodayScreenTest {
         var paywall = false
         compose.setContent { QuestLogTheme { TodayScreen(state(isPremium = false), {}, { paywall = true }, {}) } }
         compose.onNodeWithText("GET PRO").performClick()
-        assert(paywall)
+        assertTrue(paywall)
     }
 }

@@ -8,6 +8,8 @@ import com.example.questlog.theme.QuestLogTheme
 import com.example.questlog.ui.realm.RealmScreen
 import com.example.questlog.ui.today.fakeTiles
 import com.questlog.domain.model.CityTile
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -22,7 +24,7 @@ class RealmScreenTest {
             QuestLogTheme { RealmScreen(fakeTiles(), 250L, onBack = {}, onTileClick = { clicked = it }) }
         }
         compose.onNodeWithText("Zen Garden").performClick()
-        assert(clicked?.itemId == "garden")
+        assertEquals("garden", clicked?.itemId)
     }
 
     @Test
@@ -32,6 +34,6 @@ class RealmScreenTest {
             QuestLogTheme { RealmScreen(fakeTiles(), 250L, onBack = { back = true }, onTileClick = {}) }
         }
         compose.onNodeWithContentDescription("Back").performClick()
-        assert(back)
+        assertTrue(back)
     }
 }
