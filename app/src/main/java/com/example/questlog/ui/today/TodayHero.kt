@@ -15,6 +15,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -41,6 +43,15 @@ fun TodayHero(stats: PlayerStats, modifier: Modifier = Modifier) {
     )
     val shownMinutes = if (reduce) targetMinutes else animatedMinutes
     val reclaimed = formatReclaimed(shownMinutes * 60_000L)
+    val ringDescription = buildString {
+        append("Reclaimed today: ")
+        reclaimed.hours?.let { append(it).append(" ") }
+        append(reclaimed.minutes)
+        if (stats.consecutiveDetoxDays > 0) {
+            append(", ").append(stats.consecutiveDetoxDays).append(" day streak, ")
+            append(formatMultiplier(stats.streakMultiplier)).append(" rewards")
+        }
+    }
 
     Column(modifier) {
         Text("Reclaimed today".uppercase(), style = QuestType.label, color = c.inkMuted)
@@ -48,6 +59,7 @@ fun TodayHero(stats: PlayerStats, modifier: Modifier = Modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             ProgressRing(
                 fraction = ringFraction(stats.todaySavedMs, DetoxBudget.DEFAULT_DAILY_BUDGET_MS),
+                modifier = Modifier.clearAndSetSemantics { contentDescription = ringDescription },
             ) {
                 if (stats.consecutiveDetoxDays == 0) {
                     Text("—", style = QuestType.serifNumeral, color = c.inkMuted)
