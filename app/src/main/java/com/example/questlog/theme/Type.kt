@@ -5,14 +5,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 
-// Task 3 swaps this for the bundled Instrument Serif family.
-private val Serif = FontFamily.Serif
+private val Serif = InstrumentSerif
 private val Body = FontFamily.Default
 
 object QuestType {
-    val display = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Normal, fontSize = 44.sp, lineHeight = 46.sp, letterSpacing = (-0.01).sp)
+    val display = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Normal, fontSize = 44.sp, lineHeight = 46.sp, letterSpacing = (-0.01).em)
     val displayItalic = display.copy(fontStyle = FontStyle.Italic)
     val wordmark = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Normal, fontSize = 22.sp, lineHeight = 26.sp)
     val screenTitle = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Normal, fontSize = 20.sp, lineHeight = 24.sp)
