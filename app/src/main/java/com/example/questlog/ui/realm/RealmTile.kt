@@ -3,8 +3,8 @@ package com.example.questlog.ui.realm
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -66,12 +66,12 @@ fun RealmTile(tile: CityTile, onClick: () -> Unit, modifier: Modifier = Modifier
             .padding(QuestSpacing.md)
             .fillMaxWidth()
             .heightIn(min = 84.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
         androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth()) {
             Text(tile.displayName, style = QuestType.bodyLarge, color = c.inkPrimary, modifier = Modifier.weight(1f))
             Text(tier, style = QuestType.serifNumeral, color = c.inkMuted)
         }
-        Spacer(Modifier.weight(1f))
         Text(statusText.uppercase(), style = QuestType.caption, color = statusColor)
     }
 }
