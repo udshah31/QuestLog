@@ -19,8 +19,14 @@ QuestLog
 │   ├── androidMain         UsageStatsManager tracker, Room builder, Koin platform module
 │   └── desktopMain         no-op tracker (JVM target — exists so tests run without an emulator)
 └── app/                    Android application — Compose UI only
-    └── com.example.questlog  MainActivity, DashboardScreen + ViewModel, BillingManager
+    └── com.example.questlog  MainActivity, QuestLogRoot (Today / Realm), DashboardViewModel, BillingManager
 ```
+
+The `app` UI is two screens — **Today** (streak ring, level, quest ledger, realm
+summary) and **Realm** (the build grid) — plus the Pro paywall dialog, hosted by
+`ui/QuestLogRoot.kt` with no navigation library. A `QuestColors` token system drives
+a `QuestLogTheme` with matched light ("dawn") and dark ("nightfall") palettes; the
+*Instrument Serif* display face is bundled (`app/src/main/res/font/`).
 
 The `jvm("desktop")` target in `shared` carries no product code. It exists purely so
 `commonTest` — and a real in‑memory Room database — can run on the JVM in seconds
@@ -28,11 +34,12 @@ instead of on an emulator.
 
 ## Architecture
 
-Clean-ish layering inside `shared`, consumed by a single MVI screen in `app`.
+Clean-ish layering inside `shared`, consumed by the `app` UI (Today + Realm screens,
+one MVI `DashboardViewModel`).
 
 ```mermaid
 flowchart TD
-    UI["app · DashboardScreen + DashboardViewModel (MVI)"]
+    UI["app · Today / Realm screens + DashboardViewModel (MVI)"]
     UC["shared · use cases"]
     REPO["shared · repositories"]
     DB[("Room · questlog.db")]
