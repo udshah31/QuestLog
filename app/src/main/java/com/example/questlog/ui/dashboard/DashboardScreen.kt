@@ -51,8 +51,8 @@ import com.example.questlog.theme.QuestTextPrimary
 import com.example.questlog.theme.QuestTextSecondary
 import com.example.questlog.ui.components.CityGrid
 import com.example.questlog.ui.components.DailyQuestBanner
-import com.example.questlog.ui.components.PaywallModal
 import com.example.questlog.ui.components.StatsCard
+import com.example.questlog.ui.paywall.PaywallDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -171,7 +171,7 @@ fun DashboardScreen(
 
         // Paywall Modal
         if (uiState.showPaywall) {
-            PaywallModal(
+            PaywallDialog(
                 onDismiss = { viewModel.onIntent(DashboardIntent.DismissPaywall) },
                 onUnlockPro = { viewModel.onIntent(DashboardIntent.UnlockProDemo) },
             )
