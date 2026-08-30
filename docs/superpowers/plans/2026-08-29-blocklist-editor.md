@@ -2116,6 +2116,24 @@ git commit -m "Docs: in-app blocklist editor"
 - Per-app usage stats shown in the row (the mockup's "avg 1h 45m/day").
 - Notifications / enforcement when an app passes its limit.
 
+### Known trade-offs accepted at merge (final-review findings, deliberately not fixed)
+
+- **The detox reward becomes farmable.** `awardedSavedMsToday` is a monotonic
+  high-water mark and rewards are never clawed back, so a user who unblocks every
+  app mid-day gets the full remaining daily budget paid out, then re-blocks and
+  keeps the gold. Accepted: single-player, gold only buys buildings in your own
+  realm, no leaderboard; reworking the high-water-mark design is out of scope.
+- **Rows re-sort under the finger.** The Distractions list sorts blocked-first
+  live, so toggling an app at the bottom teleports it to the top. A stable
+  session order is a follow-up (needs its own test + product call).
+- **Stale `screen_time_records` inflate `BUDGET_GUARDIAN`.** Unblocking a heavy
+  app at noon leaves its morning foreground time counting toward "all distraction
+  apps under 30 min" until midnight. Self-heals daily; row cleanup on unblock is
+  scope creep on the quest layer.
+- **`expect class ScreenTimeTracker` is not `open` but the desktop `actual` is**
+  (widened to support test stubbing). Harmless — `:shared` has no Android
+  unit-test compilation — but forecloses `withHostTest` on the Android target.
+
 ## Self-Review
 
 - **Spec coverage:** app list + toggle + persist (T3–T4, T9–T12); seed defaults (T3); usage-access banner (T9, T11, T12); per-app allowance overage (T1, T5, T6); gear → dedicated screen (T8, T12); quest semantics unchanged (T6 Step 5); schema `8.json` (T3); tests: `commonTest` for `chargeableMs` / repo / use cases, `desktopTest` for migration + DAO, instrumented not-in-CI (T13). All covered.
