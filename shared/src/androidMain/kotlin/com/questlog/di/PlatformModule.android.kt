@@ -14,6 +14,7 @@ val platformModule = module {
     single { get<com.questlog.data.local.QuestLogDatabase>().currencyDao() }
     single { get<com.questlog.data.local.QuestLogDatabase>().inventoryDao() }
     single { get<com.questlog.data.local.QuestLogDatabase>().questDao() }
+    single { get<com.questlog.data.local.QuestLogDatabase>().blocklistDao() }
 
     // Platform-specific screen-time tracker
     single { ScreenTimeTracker(androidContext()) }

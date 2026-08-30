@@ -1,5 +1,6 @@
 package com.questlog.di
 
+import com.questlog.data.repository.BlocklistRepository
 import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.DailyQuestRepository
 import com.questlog.data.repository.InventoryRepository
@@ -19,6 +20,7 @@ val sharedModule = module {
     single { CurrencyRepository(get()) }
     single { InventoryRepository(get()) }
     single { DailyQuestRepository(get()) }
+    single { BlocklistRepository(get()) }
 
     // Use cases
     factory {
