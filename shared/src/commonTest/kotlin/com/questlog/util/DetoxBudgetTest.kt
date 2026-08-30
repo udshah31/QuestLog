@@ -28,4 +28,25 @@ class DetoxBudgetTest {
     fun `heavy flagged use drives saved time to zero, never negative`() {
         assertEquals(0L, DetoxBudget.savedTimeMs(budgetMs = 90 * MIN, elapsedMs = 24 * 60 * MIN, flaggedForegroundMs = 200 * MIN))
     }
+
+    @Test
+    fun `chargeableMs is zero when usage is within the allowance`() {
+        assertEquals(0L, DetoxBudget.chargeableMs(usageMs = 10 * 60_000L, allowanceMs = 30 * 60_000L))
+        assertEquals(0L, DetoxBudget.chargeableMs(usageMs = 30 * 60_000L, allowanceMs = 30 * 60_000L))
+    }
+
+    @Test
+    fun `chargeableMs is the overage when usage exceeds the allowance`() {
+        assertEquals(5 * 60_000L, DetoxBudget.chargeableMs(usageMs = 35 * 60_000L, allowanceMs = 30 * 60_000L))
+    }
+
+    @Test
+    fun `chargeableMs with a zero allowance charges all usage`() {
+        assertEquals(42 * 60_000L, DetoxBudget.chargeableMs(usageMs = 42 * 60_000L, allowanceMs = 0L))
+    }
+
+    @Test
+    fun `chargeableMs never goes negative`() {
+        assertEquals(0L, DetoxBudget.chargeableMs(usageMs = 0L, allowanceMs = 30 * 60_000L))
+    }
 }
