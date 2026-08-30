@@ -35,6 +35,7 @@ fun TodayScreen(
     onRefresh: () -> Unit,
     onOpenPaywall: () -> Unit,
     onOpenRealm: () -> Unit,
+    onOpenBlocklist: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val c = QuestLogTheme.colors
@@ -55,6 +56,12 @@ fun TodayScreen(
                         Pill("Pro", filled = true, onClick = null)
                     } else {
                         Pill("Get Pro", filled = false, onClick = onOpenPaywall)
+                    }
+                    IconButton(
+                        onClick = onOpenBlocklist,
+                        modifier = Modifier.semantics { contentDescription = "Distractions" },
+                    ) {
+                        Icon(QuestIcons.Settings, contentDescription = null, tint = c.inkMuted)
                     }
                     IconButton(
                         onClick = onRefresh,
@@ -119,7 +126,7 @@ private fun TodayPreview() {
     QuestLogTheme {
         TodayScreen(
             state = previewState(isPremium = false),
-            onRefresh = {}, onOpenPaywall = {}, onOpenRealm = {},
+            onRefresh = {}, onOpenPaywall = {}, onOpenRealm = {}, onOpenBlocklist = {},
         )
     }
 }
@@ -130,7 +137,7 @@ private fun TodayPremiumPreview() {
     QuestLogTheme {
         TodayScreen(
             state = previewState(isPremium = true),
-            onRefresh = {}, onOpenPaywall = {}, onOpenRealm = {},
+            onRefresh = {}, onOpenPaywall = {}, onOpenRealm = {}, onOpenBlocklist = {},
         )
     }
 }
