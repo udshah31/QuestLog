@@ -3,6 +3,7 @@ package com.questlog.domain.usecase
 import com.questlog.data.local.entity.CurrencyBalance
 import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.ScreenTimeRepository
+import com.questlog.domain.model.BlockedApp
 import com.questlog.domain.model.DetoxMetrics
 import com.questlog.util.StreakFreeze
 import com.questlog.util.TimeConversion
@@ -32,7 +33,7 @@ import kotlinx.datetime.toLocalDateTime
 class CalculateDetoxRewardsUseCase(
     private val screenTimeRepo: ScreenTimeRepository,
     private val currencyRepo: CurrencyRepository,
-    private val flaggedPackages: Set<String>,
+    private val blockedApps: suspend () -> List<BlockedApp>,
     private val dailyFlaggedBudgetMs: Long = 60 * 60_000L,
     private val evaluateDailyQuests: suspend () -> Unit = {},
     private val isPremium: () -> Boolean = { false },
@@ -45,7 +46,12 @@ class CalculateDetoxRewardsUseCase(
         val startOfDay = today.atStartOfDayIn(tz).toEpochMilliseconds()
 
         // 1. Fetch & persist screen-time data
-        val savedMs = screenTimeRepo.fetchAndPersistToday(flaggedPackages, startOfDay)
+        val blocked = blockedApps()
+        val savedMs = screenTimeRepo.fetchAndPersistToday(
+            flaggedPackages = blocked.mapTo(mutableSetOf()) { it.packageName },
+            startOfDayMs = startOfDay,
+            allowances = blocked.associate { it.packageName to it.dailyLimitMs },
+        )
 
         // 2. Only reward the *increase* over what today already paid out. Saved time can
         //    move up or down through the day; we never claw rewards back, so track a

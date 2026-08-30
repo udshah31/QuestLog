@@ -7,6 +7,7 @@ import com.questlog.data.local.entity.ScreenTimeRecord
 import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.ScreenTimeRepository
 import com.questlog.domain.model.AppUsage
+import com.questlog.domain.model.BlockedApp
 import com.questlog.domain.platform.ScreenTimeTracker
 import com.questlog.util.TimeConversion
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +25,9 @@ import kotlin.test.assertTrue
 private fun today() = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
 private fun daysAgoKey(n: Int) = today().minus(n, DateTimeUnit.DAY).toString()
 private const val HOUR_MS = 60 * 60_000L
+
+private fun blocked(vararg pkgs: String): suspend () -> List<BlockedApp> =
+    { pkgs.map { BlockedApp(it, 0L) } }
 
 class FakeScreenTimeDao : ScreenTimeDao {
     val records = mutableListOf<ScreenTimeRecord>()
@@ -109,7 +113,7 @@ class CalculateDetoxRewardsUseCaseTest {
         val useCase = CalculateDetoxRewardsUseCase(
             screenTimeRepo = screenTimeRepo,
             currencyRepo = currencyRepo,
-            flaggedPackages = setOf("com.instagram.android"),
+            blockedApps = blocked("com.instagram.android"),
         )
 
         val metrics = useCase()
@@ -134,7 +138,7 @@ class CalculateDetoxRewardsUseCaseTest {
         val useCase = CalculateDetoxRewardsUseCase(
             screenTimeRepo = screenTimeRepo,
             currencyRepo = currencyRepo,
-            flaggedPackages = setOf("com.instagram.android"),
+            blockedApps = blocked("com.instagram.android"),
         )
 
         val metrics = useCase()
@@ -154,7 +158,7 @@ class CalculateDetoxRewardsUseCaseTest {
         val useCase = CalculateDetoxRewardsUseCase(
             screenTimeRepo = screenTimeRepo,
             currencyRepo = currencyRepo,
-            flaggedPackages = setOf("com.instagram.android"),
+            blockedApps = blocked("com.instagram.android"),
         )
 
         val first = useCase()
@@ -217,12 +221,37 @@ class CalculateDetoxRewardsUseCaseTest {
         assertEquals(240L, metrics.goldEarned)
     }
 
+    @Test
+    fun `a generous allowance lets the day keep its full saved time`() = runTest {
+        val currencyDao = FakeCurrencyDao()
+        val screenTimeDao = FakeScreenTimeDao()
+        val screenTimeRepo = ScreenTimeRepository(
+            screenTimeDao,
+            object : ScreenTimeTracker() {
+                override suspend fun getUsageForPeriod(startMs: Long, endMs: Long) =
+                    listOf(com.questlog.domain.model.AppUsage("com.insta", 10 * 60_000L))
+                override fun isPermissionGranted() = true
+            },
+        )
+        val useCase = CalculateDetoxRewardsUseCase(
+            screenTimeRepo = screenTimeRepo,
+            currencyRepo = CurrencyRepository(currencyDao),
+            blockedApps = { listOf(com.questlog.domain.model.BlockedApp("com.insta", 60 * 60_000L)) },
+        )
+
+        val metrics = useCase()
+
+        // 10 min usage, 60 min allowance -> nothing charged -> saved == elapsed-capped budget
+        assertTrue(metrics.timeSavedMs > 0)
+        assertEquals(metrics.timeSavedMs, currencyDao.balance.awardedSavedMsToday)
+    }
+
     private fun useCaseFor(
         repo: ScreenTimeRepository,
         currencyRepo: CurrencyRepository,
         isPremium: () -> Boolean = { false },
     ) = CalculateDetoxRewardsUseCase(
-        repo, currencyRepo, setOf("com.instagram.android"),
+        repo, currencyRepo, blocked("com.instagram.android"),
         isPremium = isPremium,
     )
 

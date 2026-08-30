@@ -9,6 +9,7 @@ import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.DailyQuestRepository
 import com.questlog.data.repository.InventoryRepository
 import com.questlog.data.repository.ScreenTimeRepository
+import com.questlog.domain.model.BlockedApp
 import com.questlog.domain.platform.ScreenTimeTracker
 import com.questlog.domain.quest.QuestIds
 import com.questlog.domain.quest.questsForDay
@@ -106,7 +107,7 @@ class EvaluateDailyQuestsUseCaseTest {
             inventoryRepo = InventoryRepository(inventoryDao),
             currencyRepo = CurrencyRepository(currencyDao),
             questRepo = DailyQuestRepository(questDao, clock, UTC),
-            flaggedPackages = setOf(INSTAGRAM),
+            blockedApps = { listOf(BlockedApp(INSTAGRAM, 0L)) },
             clock = clock,
             timeZone = UTC,
         )

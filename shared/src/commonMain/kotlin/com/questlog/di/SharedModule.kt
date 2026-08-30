@@ -6,7 +6,6 @@ import com.questlog.data.repository.DailyQuestRepository
 import com.questlog.data.repository.InventoryRepository
 import com.questlog.data.repository.ScreenTimeRepository
 import com.questlog.domain.PremiumStatusProvider
-import com.questlog.domain.model.defaultFlaggedPackages
 import com.questlog.domain.usecase.CalculateDetoxRewardsUseCase
 import com.questlog.domain.usecase.DetoxMonitorFlow
 import com.questlog.domain.usecase.EvaluateDailyQuestsUseCase
@@ -29,7 +28,7 @@ val sharedModule = module {
             inventoryRepo = get(),
             currencyRepo = get(),
             questRepo = get(),
-            flaggedPackages = defaultFlaggedPackages,
+            blockedApps = { get<BlocklistRepository>().current() },
         )
     }
     factory {
@@ -37,7 +36,7 @@ val sharedModule = module {
         CalculateDetoxRewardsUseCase(
             screenTimeRepo = get(),
             currencyRepo = get(),
-            flaggedPackages = defaultFlaggedPackages,
+            blockedApps = { get<BlocklistRepository>().current() },
             evaluateDailyQuests = { quests() },
             isPremium = { getOrNull<PremiumStatusProvider>()?.isPremium() ?: false },
         )
