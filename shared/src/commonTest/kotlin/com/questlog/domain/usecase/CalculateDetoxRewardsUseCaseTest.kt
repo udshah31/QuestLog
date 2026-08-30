@@ -84,7 +84,11 @@ private class StubScreenTimeRepo(
 ) : ScreenTimeRepository(FakeScreenTimeDao(), ScreenTimeTracker()) {
     var callCount = 0
         private set
-    override suspend fun fetchAndPersistToday(flaggedPackages: Set<String>, startOfDayMs: Long): Long {
+    override suspend fun fetchAndPersistToday(
+        flaggedPackages: Set<String>,
+        startOfDayMs: Long,
+        allowances: Map<String, Long>,
+    ): Long {
         callCount++
         return savedMs
     }
