@@ -5,25 +5,13 @@ import com.questlog.data.repository.DailyQuestRepository
 import com.questlog.data.repository.InventoryRepository
 import com.questlog.data.repository.ScreenTimeRepository
 import com.questlog.domain.PremiumStatusProvider
+import com.questlog.domain.model.defaultFlaggedPackages
 import com.questlog.domain.usecase.CalculateDetoxRewardsUseCase
 import com.questlog.domain.usecase.DetoxMonitorFlow
 import com.questlog.domain.usecase.EvaluateDailyQuestsUseCase
 import com.questlog.domain.usecase.GetDashboardStatsUseCase
 import com.questlog.domain.usecase.PurchaseBuildingUseCase
 import org.koin.dsl.module
-
-/**
- * Default flagged distraction apps — can be overridden by user settings.
- */
-val defaultFlaggedPackages = setOf(
-    "com.instagram.android",
-    "com.zhiliaoapp.musically",         // TikTok
-    "com.snapchat.android",
-    "com.twitter.android",
-    "com.reddit.frontpage",
-    "com.google.android.youtube",
-    "com.facebook.katana",
-)
 
 val sharedModule = module {
     // Repositories
