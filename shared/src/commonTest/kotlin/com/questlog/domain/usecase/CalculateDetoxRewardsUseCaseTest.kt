@@ -222,28 +222,37 @@ class CalculateDetoxRewardsUseCaseTest {
     }
 
     @Test
-    fun `a generous allowance lets the day keep its full saved time`() = runTest {
-        val currencyDao = FakeCurrencyDao()
-        val screenTimeDao = FakeScreenTimeDao()
-        val screenTimeRepo = ScreenTimeRepository(
-            screenTimeDao,
-            object : ScreenTimeTracker() {
-                override suspend fun getUsageForPeriod(startMs: Long, endMs: Long) =
-                    listOf(com.questlog.domain.model.AppUsage("com.insta", 10 * 60_000L))
-                override fun isPermissionGranted() = true
-            },
-        )
-        val useCase = CalculateDetoxRewardsUseCase(
-            screenTimeRepo = screenTimeRepo,
-            currencyRepo = CurrencyRepository(currencyDao),
-            blockedApps = { listOf(com.questlog.domain.model.BlockedApp("com.insta", 60 * 60_000L)) },
-        )
+    fun `the blocked app's daily limit is honored - a larger limit charges less foreground time`() = runTest {
+        // Identical fixed usage for both runs: one flagged app, 10 min of foreground.
+        val usage = listOf(AppUsage("com.insta", 10 * 60_000L))
 
-        val metrics = useCase()
+        suspend fun savedTimeWithLimit(dailyLimitMs: Long): Long {
+            // Fresh DAOs / repos per run so the high-water mark is not shared.
+            val currencyDao = FakeCurrencyDao()
+            val screenTimeRepo = ScreenTimeRepository(
+                FakeScreenTimeDao(),
+                object : ScreenTimeTracker() {
+                    override suspend fun getUsageForPeriod(startMs: Long, endMs: Long) = usage
+                    override fun isPermissionGranted() = true
+                },
+            )
+            CalculateDetoxRewardsUseCase(
+                screenTimeRepo = screenTimeRepo,
+                currencyRepo = CurrencyRepository(currencyDao),
+                blockedApps = { listOf(BlockedApp("com.insta", dailyLimitMs)) },
+            )()
+            return currencyDao.balance.awardedSavedMsToday
+        }
 
-        // 10 min usage, 60 min allowance -> nothing charged -> saved == elapsed-capped budget
-        assertTrue(metrics.timeSavedMs > 0)
-        assertEquals(metrics.timeSavedMs, currencyDao.balance.awardedSavedMsToday)
+        // Run A: generous 60 min limit -> 10 min usage is fully within it -> nothing charged.
+        val savedGenerous = savedTimeWithLimit(60 * 60_000L)
+        // Run B: 0 limit -> app is fully blocked -> all 10 min is charged.
+        val savedBlocked = savedTimeWithLimit(0L)
+
+        // Same usage, same wall-clock elapsed: the only difference is the allowance map
+        // reaching fetchAndPersistToday, which must spare exactly the 10 min of usage.
+        assertTrue(savedGenerous > savedBlocked, "a bigger limit must keep more saved time")
+        assertEquals(10 * 60_000L, savedGenerous - savedBlocked)
     }
 
     private fun useCaseFor(
