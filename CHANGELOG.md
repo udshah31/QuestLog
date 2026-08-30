@@ -9,6 +9,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **In-app blocklist editor** — a gear on the Today screen opens **Distractions**, a
+  searchable list of installed apps. Toggle any app as a distraction and optionally
+  give it a daily allowance (Off / 15m / 30m / 1h); only foreground time beyond the
+  allowance is subtracted from reclaimed time. Seeded on first run with the seven
+  historical defaults (Room migration `v7→v8` for existing installs, an `onCreate`
+  callback for fresh ones). The screen surfaces a usage-access permission prompt when
+  the permission is missing.
 - **Rotating daily-quest pool** — the catalog grew from 3 fixed quests to a pool of 8, of
   which 3 are active each day. `questsForDay(date)` picks them with a sliding window over the
   catalog that advances one slot per day: every quest runs 3 days in every 8, consecutive
