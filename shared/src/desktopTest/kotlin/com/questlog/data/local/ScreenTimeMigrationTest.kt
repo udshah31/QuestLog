@@ -85,6 +85,26 @@ class ScreenTimeMigrationTest {
     }
 
     @Test
+    fun `7 to 8 creates blocked_app seeded with the seven defaults`() = runTest {
+        helper.createDatabase(7).close()
+
+        val v8 = helper.runMigrationsAndValidate(8, listOf(MIGRATION_7_8))
+
+        val count = v8.queryLongs("SELECT COUNT(*) FROM blocked_app").single().single()
+        assertEquals(7L, count)
+        val limits = v8.queryLongs("SELECT DISTINCT dailyLimitMs FROM blocked_app")
+        assertEquals(listOf(listOf(0L)), limits, "every seed row starts fully blocked")
+
+        // packageName is the primary key.
+        val rejectedDuplicate = runCatching {
+            v8.execSQL("INSERT INTO blocked_app (packageName, dailyLimitMs) VALUES ('com.instagram.android', 5)")
+        }.isFailure
+        assertTrue(rejectedDuplicate)
+
+        v8.close()
+    }
+
+    @Test
     fun `4 to 5 drops the unused currentLevel column`() = runTest {
         helper.createDatabase(4).close()
 
