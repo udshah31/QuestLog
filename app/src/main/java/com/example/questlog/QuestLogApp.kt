@@ -21,6 +21,13 @@ val appModule = module {
     single<PremiumStatusProvider> { PremiumStatusProvider { get<BillingManager>().isPremium.value } }
     single<InstalledAppsProvider> { PackageManagerAppsProvider(get()) }
     viewModel { DashboardViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel {
+        com.example.questlog.ui.blocklist.BlocklistViewModel(
+            blocklistRepo = get(),
+            installedApps = get(),
+            isUsageAccessGranted = { get<com.questlog.data.repository.ScreenTimeRepository>().isPermissionGranted() },
+        )
+    }
 }
 
 class QuestLogApp : Application() {
