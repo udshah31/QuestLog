@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
@@ -81,6 +82,7 @@ fun BlocklistRow(
             Switch(
                 checked = row.blocked,
                 onCheckedChange = { onToggle() },
+                modifier = Modifier.testTag("switch_${row.packageName}"),
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = c.ground,
                     checkedTrackColor = c.earned,
