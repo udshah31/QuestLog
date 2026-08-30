@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,18 +14,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
@@ -54,10 +59,14 @@ fun BlocklistRow(
     val c = QuestLogTheme.colors
     Column(modifier.fillMaxWidth().padding(vertical = QuestSpacing.sm)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            val bmp = row.icon?.let { runCatching { it.toBitmap() }.getOrNull() }
-            if (bmp != null) {
+            val painter = remember(row.icon) {
+                row.icon
+                    ?.let { runCatching { it.toBitmap(width = 84, height = 84) }.getOrNull() }
+                    ?.let { BitmapPainter(it.asImageBitmap()) }
+            }
+            if (painter != null) {
                 Image(
-                    painter = BitmapPainter(bmp.asImageBitmap()),
+                    painter = painter,
                     contentDescription = null,
                     modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)),
                 )
@@ -82,7 +91,9 @@ fun BlocklistRow(
             Switch(
                 checked = row.blocked,
                 onCheckedChange = { onToggle() },
-                modifier = Modifier.testTag("switch_${row.packageName}"),
+                modifier = Modifier
+                    .testTag("switch_${row.packageName}")
+                    .semantics { contentDescription = row.label },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = c.ground,
                     checkedTrackColor = c.earned,
@@ -97,7 +108,10 @@ fun BlocklistRow(
                 Spacer(Modifier.height(QuestSpacing.sm))
                 Text("DAILY LIMIT", style = QuestType.label, color = c.inkMuted)
                 Spacer(Modifier.height(QuestSpacing.xs))
-                Row(horizontalArrangement = Arrangement.spacedBy(QuestSpacing.sm)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(QuestSpacing.sm),
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                ) {
                     LIMIT_PRESETS_MS.forEach { ms ->
                         Pill(
                             text = limitLabel(ms),

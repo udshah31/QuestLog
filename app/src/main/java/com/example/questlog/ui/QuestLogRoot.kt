@@ -103,10 +103,9 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
                             onIntent = blocklistVm::onIntent,
                             onBack = { screen = Screen.Today },
                             onGrantAccess = {
-                                context.startActivity(
-                                    Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                )
+                                runCatching {
+                                    context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                                }
                             },
                         )
                     }

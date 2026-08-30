@@ -32,7 +32,7 @@ sealed interface BlocklistIntent {
     data class ToggleBlocked(val packageName: String) : BlocklistIntent
     data class SetLimit(val packageName: String, val dailyLimitMs: Long) : BlocklistIntent
     data class SetQuery(val query: String) : BlocklistIntent
-    object RecheckPermission : BlocklistIntent
+    data object RecheckPermission : BlocklistIntent
 }
 
 class BlocklistViewModel(
@@ -47,29 +47,17 @@ class BlocklistViewModel(
     private val query = MutableStateFlow("")
     private val permission = MutableStateFlow(isUsageAccessGranted())
 
-    // Authoritative distraction list. Seeded from the repo and refreshed on every
-    // change the repo signals — the observed Flow is only a change trigger, the
-    // list itself is re-read via current() so it stays consistent with any
-    // concurrent writer.
-    private val blockedApps = MutableStateFlow<List<BlockedApp>>(emptyList())
-
     init {
         viewModelScope.launch {
             installed.value = installedApps.launchableApps()
                 .map { AppMeta(it.packageName, it.label, it.icon) }
-        }
-        viewModelScope.launch {
-            blockedApps.value = blocklistRepo.current()
-            blocklistRepo.observeBlockedApps().collect {
-                blockedApps.value = blocklistRepo.current()
-            }
         }
     }
 
     val uiState: StateFlow<BlocklistUiState> =
         combine(
             installed,
-            blockedApps,
+            blocklistRepo.observeBlockedApps(),
             query,
             permission,
         ) { apps, blocked, q, granted ->

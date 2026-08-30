@@ -26,7 +26,10 @@ private class FakeBlocklistDao : BlocklistDao {
     val rows = mutableListOf<BlockedAppEntity>()
     private val flow = MutableStateFlow<List<BlockedAppEntity>>(emptyList())
     private fun emit() { flow.value = rows.sortedBy { it.packageName } }
-    override fun observeAll(): Flow<List<BlockedAppEntity>> = flow
+    override fun observeAll(): Flow<List<BlockedAppEntity>> {
+        emit() // Room emits the current table contents on subscription.
+        return flow
+    }
     override suspend fun getAll() = rows.sortedBy { it.packageName }
     override suspend fun get(packageName: String) = rows.firstOrNull { it.packageName == packageName }
     override suspend fun upsert(app: BlockedAppEntity) { rows.removeAll { it.packageName == app.packageName }; rows.add(app); emit() }

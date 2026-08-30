@@ -171,8 +171,9 @@ on push to `main` — see [Deploy](#deploy).
 
 ## Configuration
 
-- **Distraction apps**: `defaultFlaggedPackages` in `di/SharedModule.kt` (Instagram,
-  TikTok, Snapchat, X, Reddit, YouTube, Facebook).
+- **Distraction apps**: the live list is the user-editable `blocked_app` table
+  (`BlocklistRepository`), edited on the Distractions screen; a fresh install is seeded
+  from `domain/model/DefaultBlocklist.kt` (Instagram, TikTok, Snapchat, X, Reddit, YouTube, Facebook).
 - **Budgets / thresholds** are constructor params with defaults: the 90‑minute saved-time
   budget (`ScreenTimeRepository`), the 60‑minute streak budget
   (`CalculateDetoxRewardsUseCase`), and the quest constants in `QuestCatalog`.

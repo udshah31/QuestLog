@@ -37,10 +37,11 @@ class CalculateDetoxRewardsUseCase(
     private val dailyFlaggedBudgetMs: Long = 60 * 60_000L,
     private val evaluateDailyQuests: suspend () -> Unit = {},
     private val isPremium: () -> Boolean = { false },
+    private val clock: Clock = Clock.System,
 ) {
     suspend operator fun invoke(): DetoxMetrics {
         val tz = TimeZone.currentSystemDefault()
-        val now = Clock.System.now()
+        val now = clock.now()
         val today = now.toLocalDateTime(tz).date
         val todayKey = today.toString() // ISO-8601 "yyyy-MM-dd"
         val startOfDay = today.atStartOfDayIn(tz).toEpochMilliseconds()

@@ -15,8 +15,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atTime
 import kotlinx.datetime.minus
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,6 +31,10 @@ private const val HOUR_MS = 60 * 60_000L
 
 private fun blocked(vararg pkgs: String): suspend () -> List<BlockedApp> =
     { pkgs.map { BlockedApp(it, 0L) } }
+
+private class PinnedClock(private val instant: Instant) : Clock {
+    override fun now(): Instant = instant
+}
 
 class FakeScreenTimeDao : ScreenTimeDao {
     val records = mutableListOf<ScreenTimeRecord>()
@@ -226,6 +233,11 @@ class CalculateDetoxRewardsUseCaseTest {
         // Identical fixed usage for both runs: one flagged app, 10 min of foreground.
         val usage = listOf(AppUsage("com.insta", 10 * 60_000L))
 
+        // Pin the clock to today at local midday so `elapsed` since local midnight is
+        // deterministic and comfortably ≥ 90 min for both runs.
+        val tz = TimeZone.currentSystemDefault()
+        val noon = Clock.System.now().toLocalDateTime(tz).date.atTime(12, 0).toInstant(tz)
+
         suspend fun savedTimeWithLimit(dailyLimitMs: Long): Long {
             // Fresh DAOs / repos per run so the high-water mark is not shared.
             val currencyDao = FakeCurrencyDao()
@@ -240,6 +252,7 @@ class CalculateDetoxRewardsUseCaseTest {
                 screenTimeRepo = screenTimeRepo,
                 currencyRepo = CurrencyRepository(currencyDao),
                 blockedApps = { listOf(BlockedApp("com.insta", dailyLimitMs)) },
+                clock = PinnedClock(noon),
             )()
             return currencyDao.balance.awardedSavedMsToday
         }

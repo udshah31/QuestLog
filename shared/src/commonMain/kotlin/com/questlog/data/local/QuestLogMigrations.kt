@@ -73,7 +73,7 @@ internal val MIGRATION_7_8 = object : Migration(7, 8) {
     override fun migrate(connection: SQLiteConnection) {
         connection.execSQL(
             "CREATE TABLE IF NOT EXISTS `blocked_app` (" +
-                "`packageName` TEXT NOT NULL, `dailyLimitMs` INTEGER NOT NULL DEFAULT 0, " +
+                "`packageName` TEXT NOT NULL, `dailyLimitMs` INTEGER NOT NULL, " +
                 "PRIMARY KEY(`packageName`))"
         )
         val seed = listOf(
