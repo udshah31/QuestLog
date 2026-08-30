@@ -54,6 +54,13 @@ object QuestIcons {
         arcTo(4f, 4f, 0f, true, true, 16f, 8f)
         lineTo(16f, 11f)
     }
+
+    val Settings: ImageVector = line("Settings") {
+        // hexagon-ish gear: outer ring + center dot
+        moveTo(12f, 4f); lineTo(19f, 8f); lineTo(19f, 16f); lineTo(12f, 20f); lineTo(5f, 16f); lineTo(5f, 8f); close()
+        moveTo(12f, 9f)
+        arcTo(3f, 3f, 0f, true, true, 11.99f, 9f)
+    }
 }
 
 @Preview
@@ -66,7 +73,7 @@ private fun IconsPreview() {
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            listOf(QuestIcons.Back, QuestIcons.ArrowRight, QuestIcons.Check, QuestIcons.Refresh, QuestIcons.Crown, QuestIcons.Lock).forEach {
+            listOf(QuestIcons.Back, QuestIcons.ArrowRight, QuestIcons.Check, QuestIcons.Refresh, QuestIcons.Crown, QuestIcons.Lock, QuestIcons.Settings).forEach {
                 Icon(it, contentDescription = null, tint = QuestLogTheme.colors.inkPrimary)
             }
         }
