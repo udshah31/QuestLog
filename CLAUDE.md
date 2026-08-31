@@ -19,6 +19,7 @@ See `README.md` for architecture.
 - Repositories are the write chokepoint; UI reads reactively via `GetDashboardStatsUseCase` combining flows — Room writes propagate to the UI automatically, no manual refresh needed.
 - Pure, dependency-free logic goes in `util/TimeConversion` (fully unit-tested).
 - `app` UI: colour comes from `QuestLogTheme.colors` (semantic tokens in `theme/QuestColors.kt`) or `MaterialTheme.colorScheme`, never a raw `Color(...)`. Two screens (`ui/today`, `ui/realm`) hosted by `ui/QuestLogRoot.kt`; no nav library. Display face *Instrument Serif* is bundled in `res/font/`.
+- One shipped colour scheme — "Palette #1": charcoal ink on paper (`#FAF7FF`), `earned` (`#D72323`) is the *only* accent. `questDarkColors = questLightColors` and `QuestLogTheme` ignores its `darkTheme` param (that param + `schemeFor`'s dark branch are dormant plumbing — don't re-add a dark palette without a design; `theme/PaletteTest.kt` guards it). `currency` renders grey (palette has no gold), `locked == earned` (red). Because the theme is light-only, `MainActivity` force-pins `SystemBarStyle.light` (dark icons) and `res/values/themes.xml` sets a paper `windowBackground` (`@color/quest_window_background`).
 - DB migrations live in `commonMain` (`data/local/QuestLogMigrations.kt`); `DatabaseFactory` (androidMain) wires `*questLogMigrations`. A migration's `CREATE TABLE` must match the entity's exported `createSql` exactly — put column defaults in `@ColumnInfo(defaultValue = ...)`, not just a Kotlin default; `runMigrationsAndValidate` won't flag a DB-side default the entity omits.
 
 ## Testing patterns
@@ -31,6 +32,7 @@ See `README.md` for architecture.
 - Daily quests rotate: 3 of an 8-quest pool are active per day via `questsForDay(date)` (sliding window, `epochDays mod 8`). Quest tests derive the test date from the window they need (`dateWithWindow(...)` helper in `EvaluateDailyQuestsUseCaseTest`) rather than hardcoding one. `DailyQuestRepository` takes an injectable `clock`/`timeZone`.
 - `BlocklistDaoTest` builds the in-memory DB with `.addCallback(questLogSeedCallback)` to exercise the fresh-install seed.
 - `app/src/androidTest` (instrumented, not in CI): use `org.junit.Assert` (`kotlin.test` isn't on that classpath); keep them compiling with `./gradlew :app:compileDebugAndroidTestKotlin`.
+- Theme token edits (`theme/QuestColors.kt`) must keep `ContrastTest` green — it asserts `inkSecondary/inkMuted/earned/currency` clear 4.5:1 on `ground` and `surface` for both colour sets; `earned` `#D72323` on paper is the tight one (~4.6:1).
 
 ## Invariants / gotchas
 
