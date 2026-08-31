@@ -7,7 +7,7 @@ import android.content.Context
 import android.os.Process
 import com.questlog.domain.model.AppUsage
 
-actual class ScreenTimeTracker(private val context: Context? = null) {
+actual open class ScreenTimeTracker(private val context: Context? = null) {
 
     private val usageStatsManager: UsageStatsManager? =
         context?.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
@@ -17,7 +17,7 @@ actual class ScreenTimeTracker(private val context: Context? = null) {
      * Builds a per-package state machine: MOVE_TO_FOREGROUND starts a timer,
      * MOVE_TO_BACKGROUND / SCREEN_NON_INTERACTIVE stops it.
      */
-    actual suspend fun getUsageForPeriod(startMs: Long, endMs: Long): List<AppUsage> {
+    actual open suspend fun getUsageForPeriod(startMs: Long, endMs: Long): List<AppUsage> {
         val manager = usageStatsManager ?: return emptyList()
         val events = manager.queryEvents(startMs, endMs) ?: return emptyList()
         val foregroundStart = mutableMapOf<String, Long>()
@@ -46,7 +46,7 @@ actual class ScreenTimeTracker(private val context: Context? = null) {
         return accumulated.map { (pkg, ms) -> AppUsage(pkg, ms) }
     }
 
-    actual fun isPermissionGranted(): Boolean {
+    actual open fun isPermissionGranted(): Boolean {
         val ctx = context ?: return false
         val appOps = ctx.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
         val mode = appOps.unsafeCheckOpNoThrow(

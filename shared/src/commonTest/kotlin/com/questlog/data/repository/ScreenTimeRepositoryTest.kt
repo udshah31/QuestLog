@@ -93,8 +93,9 @@ class ScreenTimeRepositoryTest {
 
     @Test
     fun `an app blocked earlier today keeps counting after it is unblocked`() = runTest {
+        val dao = MapScreenTimeDao()
         val repo = ScreenTimeRepository(
-            MapScreenTimeDao(),
+            dao,
             StubTracker(listOf(AppUsage("com.insta", 20 * 60_000L))),
             dailyBudgetMs = budget,
         )
@@ -107,6 +108,8 @@ class ScreenTimeRepositoryTest {
             saved,
             "unblocking mid-day must not restore the saved time it already cost",
         )
+        // its record also stays live, so BUDGET_GUARDIAN (totalForegroundMs) keeps seeing it
+        assertEquals(20 * 60_000L, dao.records.single { it.packageName == "com.insta" }.foregroundMs)
     }
 
     @Test
