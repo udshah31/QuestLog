@@ -105,6 +105,24 @@ class ScreenTimeMigrationTest {
     }
 
     @Test
+    fun `8 to 9 adds lifetimeSavedMs to currency_balance with a zero default`() = runTest {
+        val v8 = helper.createDatabase(8)
+        // old-shape row (no lifetimeSavedMs column yet)
+        v8.execSQL(
+            "INSERT INTO currency_balance (id, xp, gold, gems, consecutiveDetoxDays, rewardDate, awardedSavedMsToday, streakFreezeLastUsed, updatedAt) " +
+                "VALUES (1, 0, 0, 0, 0, '2026-08-30', 3600000, '', 0)"
+        )
+        v8.close()
+
+        val v9 = helper.runMigrationsAndValidate(9, listOf(MIGRATION_8_9))
+
+        assertEquals(0L, v9.queryLongs("SELECT lifetimeSavedMs FROM currency_balance WHERE id = 1").single().single())
+        v9.execSQL("UPDATE currency_balance SET lifetimeSavedMs = lifetimeSavedMs + 600000 WHERE id = 1")
+        assertEquals(600_000L, v9.queryLongs("SELECT lifetimeSavedMs FROM currency_balance WHERE id = 1").single().single())
+        v9.close()
+    }
+
+    @Test
     fun `4 to 5 drops the unused currentLevel column`() = runTest {
         helper.createDatabase(4).close()
 

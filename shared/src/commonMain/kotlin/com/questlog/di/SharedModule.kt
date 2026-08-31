@@ -45,6 +45,6 @@ val sharedModule = module {
         val detox = get<CalculateDetoxRewardsUseCase>()
         DetoxMonitorFlow(runDetoxCheck = { detox() })
     }
-    factory { GetDashboardStatsUseCase(currencyRepo = get(), inventoryRepo = get()) }
+    factory { GetDashboardStatsUseCase(currencyRepo = get(), inventoryRepo = get(), blocklistRepo = get()) }
     factory { PurchaseBuildingUseCase(currencyRepo = get(), inventoryRepo = get()) }
 }

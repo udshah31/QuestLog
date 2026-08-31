@@ -71,6 +71,10 @@ class FakeCurrencyDao : CurrencyDao {
         balance = balance.copy(consecutiveDetoxDays = days, updatedAt = now)
         flow.value = balance
     }
+    override suspend fun addLifetimeSaved(deltaMs: Long, now: Long) {
+        balance = balance.copy(lifetimeSavedMs = balance.lifetimeSavedMs + deltaMs, updatedAt = now)
+        flow.value = balance
+    }
     override suspend fun setStreakFreezeUsed(date: String, now: Long) {
         balance = balance.copy(streakFreezeLastUsed = date, updatedAt = now)
         flow.value = balance
@@ -99,6 +103,16 @@ class FakeQuestDao : QuestDao {
     override fun observeCompletedIds(date: String): Flow<List<String>> = flow
     override suspend fun completedIds(date: String): List<String> = completed.toList()
 }
+
+class FakeBlocklistDao : com.questlog.data.local.dao.BlocklistDao {
+    override fun observeAll(): Flow<List<com.questlog.data.local.entity.BlockedAppEntity>> = MutableStateFlow(emptyList())
+    override suspend fun getAll(): List<com.questlog.data.local.entity.BlockedAppEntity> = emptyList()
+    override suspend fun get(packageName: String): com.questlog.data.local.entity.BlockedAppEntity? = null
+    override suspend fun upsert(app: com.questlog.data.local.entity.BlockedAppEntity) {}
+    override suspend fun delete(packageName: String) {}
+}
+
+private fun emptyBlocklistRepo() = com.questlog.data.repository.BlocklistRepository(FakeBlocklistDao())
 
 /** Detox monitor that never emits — keeps the polling loop out of tests that don't exercise it. */
 private fun silentMonitor() = object : DetoxMonitorFlow(runDetoxCheck = { error("unused") }) {
@@ -130,7 +144,7 @@ class DashboardViewModelTest {
         val inventoryRepo = InventoryRepository(inventoryDao)
         val screenTimeRepo = ScreenTimeRepository(screenTimeDao, ScreenTimeTracker())
 
-        val getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo)
+        val getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo, emptyBlocklistRepo())
         val calculateDetox = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, { listOf(BlockedApp("com.instagram.android", 0L)) })
         val purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo)
         val billingManager = BillingManager()
@@ -164,7 +178,7 @@ class DashboardViewModelTest {
         val screenTimeRepo = ScreenTimeRepository(screenTimeDao, ScreenTimeTracker())
 
         val viewModel = DashboardViewModel(
-            getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo),
+            getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo, emptyBlocklistRepo()),
             calculateDetoxRewards = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, { listOf(BlockedApp("com.instagram.android", 0L)) }),
             detoxMonitor = silentMonitor(),
             purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),
@@ -191,7 +205,7 @@ class DashboardViewModelTest {
         val screenTimeDao = FakeScreenTimeDao()
 
         val viewModel = DashboardViewModel(
-            getDashboardStats = GetDashboardStatsUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao)),
+            getDashboardStats = GetDashboardStatsUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao), emptyBlocklistRepo()),
             calculateDetoxRewards = CalculateDetoxRewardsUseCase(ScreenTimeRepository(screenTimeDao, ScreenTimeTracker()), CurrencyRepository(currencyDao), { listOf(BlockedApp("com.instagram.android", 0L)) }),
             detoxMonitor = silentMonitor(),
             purchaseBuilding = PurchaseBuildingUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao)),
@@ -224,7 +238,7 @@ class DashboardViewModelTest {
         val screenTimeRepo = ScreenTimeRepository(screenTimeDao, ScreenTimeTracker())
 
         DashboardViewModel(
-            getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo),
+            getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo, emptyBlocklistRepo()),
             calculateDetoxRewards = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, { listOf(BlockedApp("com.instagram.android", 0L)) }),
             detoxMonitor = monitor,
             purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),

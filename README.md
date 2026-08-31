@@ -79,7 +79,7 @@ flowchart LR
     REWARD --> BAL[("currency_balance")]
     STREAK --> BAL
     QUESTS --> BAL
-    BAL --> DASH["GetDashboardStatsUseCase<br/>combine(currency, buildings)"]
+    BAL --> DASH["GetDashboardStatsUseCase<br/>combine(currency, buildings, blocklist)"]
     DASH --> STATE["DashboardState → UI"]
 ```
 
@@ -100,7 +100,7 @@ flowchart LR
 5. **Quests.** `EvaluateDailyQuestsUseCase` checks the 3 fixed quests against the
    freshly-persisted data and auto-grants each reward exactly once per day (see below).
 6. Everything lands in `currency_balance`, and the UI updates reactively through
-   `GetDashboardStatsUseCase` (`combine(currency, buildings)`) plus the ViewModel's own
+   `GetDashboardStatsUseCase` (`combine(currency, buildings, blocklist)`) plus the ViewModel's own
    `DailyQuestRepository.observeToday()` flow.
 
 ## Daily quests

@@ -64,10 +64,12 @@ class CalculateDetoxRewardsUseCase(
 
         val premium = isPremium()
 
-        // Advance the streak once per day, the first time we run after midnight.
+        // Advance the streak once per day, the first time we run after midnight — and
+        // fold the finished day's saved time into the all-time total before it is reset.
         var streak = balance?.consecutiveDetoxDays ?: 0
         val lastDay = balance?.rewardDate
         if (!lastDay.isNullOrEmpty() && lastDay != todayKey) {
+            currencyRepo.addLifetimeSaved(balance?.awardedSavedMsToday ?: 0L)
             streak = evaluateStreak(lastDay, today, streak, balance, premium)
             currencyRepo.setStreak(streak)
         }

@@ -9,6 +9,9 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **All-time stats on Today** — a running **reclaimed-time total** under the daily
+  hero (`currency_balance.lifetimeSavedMs`, folded in on each day rollover; DB v9)
+  and an **"N apps guarded"** line under the level bar, live from the blocklist.
 - **In-app blocklist editor** — a gear on the Today screen opens **Distractions**, a
   searchable list of installed apps. Toggle any app as a distraction and optionally
   give it a daily allowance (Off / 15m / 30m / 1h); only foreground time beyond the

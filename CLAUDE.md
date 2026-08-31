@@ -11,7 +11,7 @@ See `README.md` for architecture.
 - Use `--no-daemon`; add `--rerun-tasks` to force test re-run (Gradle caches passing tests).
 - Results: `shared/build/test-results/desktopTest/*.xml`, `app/build/test-results/testDebugUnitTest/*.xml`.
 - **CI (`ci.yml`) runs only those three tasks.** Tests under `shared/src/androidUnitTest` do NOT run in CI — put shared tests in `commonTest` (runs on desktop) or `desktopTest`.
-- Room exports schema JSON on build to `shared/schemas/com.questlog.data.local.QuestLogDatabase/N.json` — commit it.
+- Room exports schema JSON on build to `shared/schemas/com.questlog.data.local.QuestLogDatabase/N.json` — commit it. `--rerun-tasks` rewrites *every* `N.json` from the current entities (old versions get the new structure); commit only the newest and `git checkout` the rest to keep them frozen.
 
 ## Conventions
 
@@ -37,6 +37,7 @@ See `README.md` for architecture.
 - `currency_balance` is a single row (`id = 1`); every write path calls `CurrencyRepository.ensureInitialized()` (an `INSERT OR IGNORE`) first, or the `UPDATE` silently no-ops on a fresh install.
 - The detox reward is idempotent per day — a high-water mark in `currency_balance.rewardDate` / `awardedSavedMsToday`. Never re-add the full daily total. `fetchAndPersistToday` charges `currentBlocklist ∪ screen_time_records.packagesForDate(today)`, so an app blocked at *any* tick today keeps counting until midnight — unblocking never claws the reward back.
 - `screen_time_records` PK is `(packageName, date)` — one row per app per day.
+- `currency_balance.xp` only ever increases (every `addRewards` xpDelta is ≥ 0) — it is also the lifetime XP total. `lifetimeSavedMs` accumulates each finalised day's saved-time on rollover; the live all-time value is `lifetimeSavedMs + awardedSavedMsToday` (`PlayerStats.lifetimeSavedMs`).
 - `BuildConfig.REVENUECAT_API_KEY` falls back to a placeholder; a real key comes from the
   `REVENUECAT_API_KEY` env var (CI) or `keystore.properties` `revenueCatKey` (local).
 - `build/` and `.kotlin/` are gitignored; some `.idea/*` files are intentionally tracked.
