@@ -25,6 +25,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -68,7 +70,8 @@ fun BlocklistScreen(
             Column(
                 Modifier.fillMaxWidth()
                     .clip(QuestShapes.medium)
-                    .border(1.dp, c.locked, QuestShapes.medium)
+                    .border(1.dp, c.rule, QuestShapes.medium)
+                    .drawBehind { drawRect(color = c.locked, size = Size(2.dp.toPx(), size.height)) }
                     .padding(QuestSpacing.md),
             ) {
                 Text("Usage access needed", style = QuestType.bodyLarge, color = c.inkPrimary)

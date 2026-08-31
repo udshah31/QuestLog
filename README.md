@@ -25,9 +25,10 @@ QuestLog
 The `app` UI is two screens — **Today** (streak ring, level, quest ledger, realm
 summary) and **Realm** (the build grid) — plus **Distractions** (the blocklist editor,
 reached from the Today gear) and the Pro paywall dialog, hosted by `ui/QuestLogRoot.kt`
-with no navigation library. A `QuestColors` token system drives a `QuestLogTheme` with
-matched light ("dawn") and dark ("nightfall") palettes; the *Instrument Serif* display
-face is bundled (`app/src/main/res/font/`).
+with no navigation library. A `QuestColors` token system drives a `QuestLogTheme` with a
+single charcoal-on-paper palette and one red accent ("Palette #1"); the light/dark
+plumbing is kept but both paths resolve to it. The *Instrument Serif* display face is
+bundled (`app/src/main/res/font/`).
 
 The `jvm("desktop")` target in `shared` carries no product code. It exists purely so
 `commonTest` — and a real in‑memory Room database — can run on the JVM in seconds
