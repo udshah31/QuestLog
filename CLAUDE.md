@@ -19,22 +19,23 @@ See `README.md` for architecture.
 - Repositories are the write chokepoint; UI reads reactively via `GetDashboardStatsUseCase` combining flows — Room writes propagate to the UI automatically, no manual refresh needed.
 - Pure, dependency-free logic goes in `util/TimeConversion` (fully unit-tested).
 - `app` UI: colour comes from `QuestLogTheme.colors` (semantic tokens in `theme/QuestColors.kt`) or `MaterialTheme.colorScheme`, never a raw `Color(...)`. Two screens (`ui/today`, `ui/realm`) hosted by `ui/QuestLogRoot.kt`; no nav library. Display face *Instrument Serif* is bundled in `res/font/`.
-- DB migrations live in `commonMain` (`data/local/QuestLogMigrations.kt`); `DatabaseFactory` (androidMain) wires `*questLogMigrations`.
+- DB migrations live in `commonMain` (`data/local/QuestLogMigrations.kt`); `DatabaseFactory` (androidMain) wires `*questLogMigrations`. A migration's `CREATE TABLE` must match the entity's exported `createSql` exactly — put column defaults in `@ColumnInfo(defaultValue = ...)`, not just a Kotlin default; `runMigrationsAndValidate` won't flag a DB-side default the entity omits.
 
 ## Testing patterns
 
-- Use-case / repo tests use hand-written fake DAOs that model real Room semantics (e.g. `UPDATE ... WHERE id = 1` is a no-op when the row is absent).
+- Use-case / repo tests use hand-written fake DAOs that model real Room semantics (e.g. `UPDATE ... WHERE id = 1` is a no-op when the row is absent). Adding a `@Dao` method means updating every fake: `FakeScreenTimeDao` in `CalculateDetoxRewardsUseCaseTest` (shared; also used by `EvaluateDailyQuestsUseCaseTest`), the fakes in `ScreenTimeRepositoryTest`, and `app`'s `DashboardViewModelTest`.
 - Real Room DB tests run on `desktop`: `Room.inMemoryDatabaseBuilder<QuestLogDatabase>().setDriver(BundledSQLiteDriver())` (needs `@ConstructedBy` on `@Database`, already present).
 - Migration tests: `MigrationTestHelper` as a plain JVM test in `desktopTest`; schema dir is passed via the `questlog.schemasDir` system property set in `shared/build.gradle.kts`.
-- `ScreenTimeRepository` and `DetoxMonitorFlow` are `open` so tests can stub them — a real `DetoxMonitorFlow` in a `runTest` + `advanceUntilIdle()` hangs (infinite `while(true){ delay() }`).
-- `DashboardViewModelTest` sets `Dispatchers.setMain(StandardTestDispatcher())` before `runTest` so they share a scheduler.
+- `ScreenTimeRepository`, `DetoxMonitorFlow`, and `ScreenTimeTracker` (`expect` + both `actual`s) are `open` so tests can stub them — a real `DetoxMonitorFlow` in a `runTest` + `advanceUntilIdle()` hangs (infinite `while(true){ delay() }`).
+- `app` ViewModel tests: `@OptIn(ExperimentalCoroutinesApi::class)` on the class + `Dispatchers.setMain(StandardTestDispatcher())` before `runTest` (see `DashboardViewModelTest`, `BlocklistViewModelTest`).
 - Daily quests rotate: 3 of an 8-quest pool are active per day via `questsForDay(date)` (sliding window, `epochDays mod 8`). Quest tests derive the test date from the window they need (`dateWithWindow(...)` helper in `EvaluateDailyQuestsUseCaseTest`) rather than hardcoding one. `DailyQuestRepository` takes an injectable `clock`/`timeZone`.
 - `BlocklistDaoTest` builds the in-memory DB with `.addCallback(questLogSeedCallback)` to exercise the fresh-install seed.
+- `app/src/androidTest` (instrumented, not in CI): use `org.junit.Assert` (`kotlin.test` isn't on that classpath); keep them compiling with `./gradlew :app:compileDebugAndroidTestKotlin`.
 
 ## Invariants / gotchas
 
 - `currency_balance` is a single row (`id = 1`); every write path calls `CurrencyRepository.ensureInitialized()` (an `INSERT OR IGNORE`) first, or the `UPDATE` silently no-ops on a fresh install.
-- The detox reward is idempotent per day — a high-water mark in `currency_balance.rewardDate` / `awardedSavedMsToday`. Never re-add the full daily total.
+- The detox reward is idempotent per day — a high-water mark in `currency_balance.rewardDate` / `awardedSavedMsToday`. Never re-add the full daily total. `fetchAndPersistToday` charges `currentBlocklist ∪ screen_time_records.packagesForDate(today)`, so an app blocked at *any* tick today keeps counting until midnight — unblocking never claws the reward back.
 - `screen_time_records` PK is `(packageName, date)` — one row per app per day.
 - `BuildConfig.REVENUECAT_API_KEY` falls back to a placeholder; a real key comes from the
   `REVENUECAT_API_KEY` env var (CI) or `keystore.properties` `revenueCatKey` (local).
@@ -47,3 +48,4 @@ See `README.md` for architecture.
   and the `questLogSeedCallback` on fresh installs. The detox use cases read it live
   through a `suspend () -> List<BlockedApp>` supplier; per-app `dailyLimitMs` is an
   allowance — only overage counts (`DetoxBudget.chargeableMs`).
+- The blocklist app-list needs `<queries>` in `app/src/main/AndroidManifest.xml` — `PackageManager.queryIntentActivities` is filtered to near-nothing on API 30+ without it.
