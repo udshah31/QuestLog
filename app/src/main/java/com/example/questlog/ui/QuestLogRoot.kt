@@ -4,11 +4,14 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -35,7 +38,7 @@ import com.example.questlog.ui.blocklist.BlocklistViewModel
 import com.example.questlog.ui.common.reducedMotion
 import com.example.questlog.ui.dashboard.DashboardIntent
 import com.example.questlog.ui.dashboard.DashboardViewModel
-import com.example.questlog.ui.paywall.PaywallDialog
+import com.example.questlog.ui.paywall.PaywallScreen
 import com.example.questlog.ui.realm.RealmScreen
 import com.example.questlog.ui.today.TodayScreen
 import org.koin.compose.viewmodel.koinViewModel
@@ -58,6 +61,8 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
     }
 
     BackHandler(enabled = screen != Screen.Today) { screen = Screen.Today }
+    // Composed after the screen handler, so it takes priority while the paywall is up.
+    BackHandler(enabled = state.showPaywall) { viewModel.onIntent(DashboardIntent.DismissPaywall) }
 
     Box(Modifier.fillMaxSize()) {
         AnimatedContent(
@@ -121,8 +126,20 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
                 .windowInsetsPadding(WindowInsets.safeDrawing),
         )
 
-        if (state.showPaywall) {
-            PaywallDialog(
+        AnimatedVisibility(
+            visible = state.showPaywall,
+            enter = if (reduce) {
+                fadeIn(tween(120))
+            } else {
+                slideInVertically(tween(250)) { it } + fadeIn(tween(250))
+            },
+            exit = if (reduce) {
+                fadeOut(tween(120))
+            } else {
+                slideOutVertically(tween(250)) { it } + fadeOut(tween(250))
+            },
+        ) {
+            PaywallScreen(
                 onDismiss = { viewModel.onIntent(DashboardIntent.DismissPaywall) },
                 onUnlockPro = { viewModel.onIntent(DashboardIntent.UnlockProDemo) },
             )
