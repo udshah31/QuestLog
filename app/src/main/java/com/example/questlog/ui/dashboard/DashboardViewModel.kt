@@ -114,12 +114,12 @@ class DashboardViewModel(
                     when (val result = purchaseBuilding(tile, isPremium)) {
                         is PurchaseResult.Success -> {
                             _uiState.update {
-                                it.copy(snackbarMessage = "🎉 Successfully constructed ${tile.displayName}!")
+                                it.copy(snackbarMessage = "Constructed ${tile.displayName}.")
                             }
                         }
                         is PurchaseResult.InsufficientFunds -> {
                             _uiState.update {
-                                it.copy(snackbarMessage = "⚠️ Not enough gold! Avoid more screen time to earn gold.")
+                                it.copy(snackbarMessage = "Not enough gold. Reclaim more time to earn it.")
                             }
                         }
                         is PurchaseResult.PremiumRequired -> {
@@ -127,7 +127,7 @@ class DashboardViewModel(
                         }
                         is PurchaseResult.AlreadyOwned -> {
                             _uiState.update {
-                                it.copy(snackbarMessage = "${tile.displayName} is already built!")
+                                it.copy(snackbarMessage = "${tile.displayName} is already built.")
                             }
                         }
                     }
@@ -148,7 +148,7 @@ class DashboardViewModel(
                     it.copy(
                         isPremium = true,
                         showPaywall = false,
-                        snackbarMessage = "👑 Welcome to QuestLog Pro! All premium buildings unlocked."
+                        snackbarMessage = "QuestLog Pro unlocked. All buildings available."
                     )
                 }
             }

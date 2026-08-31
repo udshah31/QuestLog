@@ -57,7 +57,7 @@ fun PaywallScreen(
                 IconButton(onClick = onDismiss) {
                     Icon(QuestIcons.Back, contentDescription = "Back", tint = c.inkPrimary)
                 }
-                Text("Questlog Pro", style = QuestType.screenTitle, color = c.inkPrimary)
+                Text("QuestLog Pro", style = QuestType.screenTitle, color = c.inkPrimary)
             }
         },
     ) {
