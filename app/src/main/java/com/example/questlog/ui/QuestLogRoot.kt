@@ -96,6 +96,7 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
                         val context = LocalContext.current
                         LifecycleResumeEffect(Unit) {
                             blocklistVm.onIntent(BlocklistIntent.RecheckPermission)
+                            blocklistVm.onIntent(BlocklistIntent.Regroup)
                             onPauseOrDispose { }
                         }
                         BlocklistScreen(
