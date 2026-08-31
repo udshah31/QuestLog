@@ -35,6 +35,7 @@ data class DashboardUiState(
     ),
     val cityTiles: List<CityTile> = emptyList(),
     val dailyQuests: List<DailyQuest> = emptyList(),
+    val blockedAppCount: Int = 0,
     val isPremium: Boolean = false,
     val showPaywall: Boolean = false,
     val snackbarMessage: String? = null,
@@ -75,6 +76,7 @@ class DashboardViewModel(
                         stats = dashboardState.stats,
                         cityTiles = dashboardState.cityTiles,
                         dailyQuests = quests,
+                        blockedAppCount = dashboardState.blockedAppCount,
                         isPremium = isPremium,
                     )
                 }

@@ -89,6 +89,13 @@ internal val MIGRATION_7_8 = object : Migration(7, 8) {
     }
 }
 
+/** v9: all-time saved screen-time total on the currency row. */
+internal val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `currency_balance` ADD COLUMN `lifetimeSavedMs` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 /**
  * Seeds `blocked_app` on a fresh database (fresh installs never run migrations).
  * Uses the live [com.questlog.domain.model.defaultFlaggedPackages] — unlike a
@@ -107,4 +114,7 @@ val questLogSeedCallback = object : RoomDatabase.Callback() {
 
 /** Every migration the app database ships, in order. */
 internal val questLogMigrations: Array<Migration> =
-    arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+    arrayOf(
+        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
+        MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+    )

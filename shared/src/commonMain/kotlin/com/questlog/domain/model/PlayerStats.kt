@@ -11,4 +11,6 @@ data class PlayerStats(
     val streakMultiplier: Float,
     val todaySavedMs: Long,
     val streakFreezeReady: Boolean = false,
+    /** All-time saved screen-time (ms): finalised past days plus today's award so far. */
+    val lifetimeSavedMs: Long = 0L,
 )

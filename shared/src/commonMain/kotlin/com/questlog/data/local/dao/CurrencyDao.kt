@@ -41,6 +41,9 @@ interface CurrencyDao {
     @Query("UPDATE currency_balance SET consecutiveDetoxDays = :days, updatedAt = :now WHERE id = 1")
     suspend fun setStreak(days: Int, now: Long)
 
+    @Query("UPDATE currency_balance SET lifetimeSavedMs = lifetimeSavedMs + :deltaMs, updatedAt = :now WHERE id = 1")
+    suspend fun addLifetimeSaved(deltaMs: Long, now: Long)
+
     @Query("UPDATE currency_balance SET streakFreezeLastUsed = :date, updatedAt = :now WHERE id = 1")
     suspend fun setStreakFreezeUsed(date: String, now: Long)
 }

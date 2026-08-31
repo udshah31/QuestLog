@@ -25,7 +25,7 @@ import com.questlog.data.local.entity.ScreenTimeRecord
         QuestCompletion::class,
         BlockedAppEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 @ConstructedBy(QuestLogDatabaseConstructor::class)

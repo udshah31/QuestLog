@@ -47,6 +47,11 @@ private class FreshInstallCurrencyDao : CurrencyDao {
         state.value = current.copy(consecutiveDetoxDays = days, updatedAt = now)
     }
 
+    override suspend fun addLifetimeSaved(deltaMs: Long, now: Long) {
+        val current = state.value ?: return
+        state.value = current.copy(lifetimeSavedMs = current.lifetimeSavedMs + deltaMs, updatedAt = now)
+    }
+
     override suspend fun setStreakFreezeUsed(date: String, now: Long) {
         val current = state.value ?: return
         state.value = current.copy(streakFreezeLastUsed = date, updatedAt = now)
@@ -106,5 +111,30 @@ class CurrencyRepositoryTest {
         repo.setStreakFreezeUsed(today)
 
         assertFalse(repo.observePlayerStats().first().streakFreezeReady)
+    }
+
+    @Test
+    fun `lifetimeSavedMs is the stored total plus today's not-yet-finalised award`() = runTest {
+        val dao = FreshInstallCurrencyDao()
+        dao.state.value = CurrencyBalance(
+            id = 1L,
+            lifetimeSavedMs = 3 * 60 * 60_000L,      // 3h locked in from earlier days
+            awardedSavedMsToday = 20 * 60_000L,      // 20m so far today
+        )
+        val repo = CurrencyRepository(dao)
+
+        assertEquals(3 * 60 * 60_000L + 20 * 60_000L, repo.observePlayerStats().first().lifetimeSavedMs)
+    }
+
+    @Test
+    fun `addLifetimeSaved accumulates onto the stored total`() = runTest {
+        val dao = FreshInstallCurrencyDao()
+        val repo = CurrencyRepository(dao)
+        repo.addRewards(1L, 0L) // seed the row
+
+        repo.addLifetimeSaved(45 * 60_000L)
+        repo.addLifetimeSaved(15 * 60_000L)
+
+        assertEquals(60 * 60_000L, dao.state.value!!.lifetimeSavedMs)
     }
 }

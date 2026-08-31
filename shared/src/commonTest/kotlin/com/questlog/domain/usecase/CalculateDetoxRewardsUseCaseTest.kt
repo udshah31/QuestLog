@@ -81,6 +81,10 @@ class FakeCurrencyDao : CurrencyDao {
         balance = balance.copy(consecutiveDetoxDays = days, updatedAt = now)
         flow.value = balance
     }
+    override suspend fun addLifetimeSaved(deltaMs: Long, now: Long) {
+        balance = balance.copy(lifetimeSavedMs = balance.lifetimeSavedMs + deltaMs, updatedAt = now)
+        flow.value = balance
+    }
     override suspend fun setStreakFreezeUsed(date: String, now: Long) {
         balance = balance.copy(streakFreezeLastUsed = date, updatedAt = now)
         flow.value = balance
@@ -315,6 +319,36 @@ class CalculateDetoxRewardsUseCaseTest {
     )
 
     // ── streak tracking ──────────────────────────────────────────────────────
+
+    @Test
+    fun `a day rollover folds the finished day's saved time into the lifetime total`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            balance = balance.copy(
+                rewardDate = daysAgoKey(1),
+                awardedSavedMsToday = 40 * 60_000L,   // yesterday's final saved time
+                lifetimeSavedMs = 2 * 60 * 60_000L,   // 2h locked in from before
+            )
+        }
+        val repo = StubScreenTimeRepo(savedMs = 10 * 60_000L) // today's fresh 10 min
+
+        useCaseFor(repo, CurrencyRepository(currencyDao))()
+
+        // yesterday's 40 min is folded in; today's 10 min is now awardedSavedMsToday
+        assertEquals(2 * 60 * 60_000L + 40 * 60_000L, currencyDao.balance.lifetimeSavedMs)
+        assertEquals(10 * 60_000L, currencyDao.balance.awardedSavedMsToday)
+    }
+
+    @Test
+    fun `repeated runs on a rollover day fold the finished day in only once`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            balance = balance.copy(rewardDate = daysAgoKey(1), awardedSavedMsToday = 40 * 60_000L)
+        }
+        val useCase = useCaseFor(StubScreenTimeRepo(savedMs = 10 * 60_000L), CurrencyRepository(currencyDao))
+
+        useCase(); useCase(); useCase()
+
+        assertEquals(40 * 60_000L, currencyDao.balance.lifetimeSavedMs)
+    }
 
     @Test
     fun `streak increments when the day that just ended stayed under budget`() = runTest {

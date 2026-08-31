@@ -44,6 +44,13 @@ class CurrencyRepository(private val dao: CurrencyDao) {
         dao.setStreak(days.coerceAtLeast(0), Clock.System.now().toEpochMilliseconds())
     }
 
+    /** Folds a finalised day's saved screen-time into the all-time total. */
+    suspend fun addLifetimeSaved(deltaMs: Long) {
+        if (deltaMs <= 0L) return
+        ensureInitialized()
+        dao.addLifetimeSaved(deltaMs, Clock.System.now().toEpochMilliseconds())
+    }
+
     /** Records that the streak-freeze charge was spent on [date] (ISO). */
     suspend fun setStreakFreezeUsed(date: String) {
         ensureInitialized()
@@ -64,6 +71,7 @@ class CurrencyRepository(private val dao: CurrencyDao) {
                 consecutiveDetoxDays = b.consecutiveDetoxDays,
                 streakMultiplier = multiplier,
                 todaySavedMs = b.awardedSavedMsToday,
+                lifetimeSavedMs = b.lifetimeSavedMs + b.awardedSavedMsToday,
                 streakFreezeReady = StreakFreeze.isRechargedOn(b.streakFreezeLastUsed, today),
             )
         }

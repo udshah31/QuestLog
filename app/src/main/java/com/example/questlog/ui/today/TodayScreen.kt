@@ -98,6 +98,13 @@ fun TodayScreen(
             }
             Hairline()
             LevelBar(state.stats)
+            if (state.blockedAppCount > 0) {
+                Text(
+                    "${state.blockedAppCount} ${if (state.blockedAppCount == 1) "app" else "apps"} guarded".uppercase(),
+                    style = QuestType.caption,
+                    color = c.inkMuted,
+                )
+            }
             Hairline()
             QuestLedger(state.dailyQuests)
             Hairline()
@@ -116,6 +123,7 @@ private fun previewState(isPremium: Boolean) = DashboardUiState(
         com.questlog.domain.model.DailyQuest("b", "Master Builder", "Build two in one day", 300, 70, true, ""),
         com.questlog.domain.model.DailyQuest("c", "Dawn Discipline", "Nothing before 9am", 150, 30, false, ""),
     ),
+    blockedAppCount = 9,
     isPremium = isPremium,
 )
 

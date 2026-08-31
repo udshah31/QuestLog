@@ -85,14 +85,26 @@ fun TodayHero(stats: PlayerStats, modifier: Modifier = Modifier) {
                 style = QuestType.display,
             )
         }
+        if (stats.lifetimeSavedMs > 0L) {
+            Spacer(Modifier.height(QuestSpacing.sm))
+            val lifetime = formatReclaimed(stats.lifetimeSavedMs)
+            Text(
+                buildString {
+                    lifetime.hours?.let { append(it).append(" ") }
+                    append(lifetime.minutes).append(" reclaimed all-time")
+                }.uppercase(),
+                style = QuestType.caption,
+                color = c.inkMuted,
+            )
+        }
     }
 }
 
 internal fun fakeStats(
     level: Int = 6, xp: Long = 1950L, xpToNext: Long = 2100L, gold: Long = 250L,
     gems: Long = 0L, streakDays: Int = 6, mult: Float = 2.0f, savedMs: Long = 90 * 60_000L,
-    shieldReady: Boolean = true,
-) = PlayerStats(level, xp, xpToNext, gold, gems, streakDays, mult, savedMs, shieldReady)
+    shieldReady: Boolean = true, lifetimeMs: Long = 14 * 60 * 60_000L + 20 * 60_000L,
+) = PlayerStats(level, xp, xpToNext, gold, gems, streakDays, mult, savedMs, shieldReady, lifetimeMs)
 
 @androidx.compose.ui.tooling.preview.Preview
 @androidx.compose.ui.tooling.preview.Preview(uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
