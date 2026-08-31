@@ -2127,14 +2127,16 @@ git commit -m "Docs: in-app blocklist editor"
   (`fix/blocklist-stable-sort`): the row order is frozen in a dedicated `order`
   flow, recomputed only on screen entry via `BlocklistIntent.Regroup`; toggles
   flip the switch in place.
-- **`BUDGET_GUARDIAN` counts since-unblocked apps until midnight.** Unblocking a
-  heavy app at noon leaves its foreground time counting toward "all distraction
-  apps under 30 min" for the rest of the day. Now consistent with the reward
-  fix above (both charge apps that were blocked at any tick today); self-heals
-  daily. Accepted.
-- **`expect class ScreenTimeTracker` is not `open` but the desktop `actual` is**
-  (widened to support test stubbing). Harmless — `:shared` has no Android
-  unit-test compilation — but forecloses `withHostTest` on the Android target.
+- ~~**`BUDGET_GUARDIAN` counts stale `screen_time_records`.**~~ Resolved by the
+  farmable-reward fix: `fetchAndPersistToday` keeps rows for since-unblocked apps
+  live, and `totalForegroundMs` (what `BUDGET_GUARDIAN` reads) sums exactly the
+  same set the reward charges — quest and reward are now consistent, and the rows
+  are current rather than frozen. An app blocked at any tick today counts toward
+  the quest for the rest of the day, by design; self-heals at midnight.
+- ~~**`expect`/`actual` `open` asymmetry on `ScreenTimeTracker`.**~~ Fixed in
+  `chore/blocklist-deferred-cleanup`: the `expect` declaration and the Android
+  `actual` are now `open`, matching the desktop `actual`. Tests subclass it as a
+  stub on any target; production never does.
 
 ## Self-Review
 
