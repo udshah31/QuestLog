@@ -28,6 +28,12 @@ open class ScreenTimeRepository(
      * allowance ms) only affects the reward input: per app, just the usage beyond its
      * allowance is charged (see [DetoxBudget.chargeableMs]). The default empty map
      * charges every flagged millisecond.
+     *
+     * An app that was blocked during *any* earlier tick today keeps counting for the
+     * rest of the day even after it is unblocked (its allowance is treated as gone).
+     * Otherwise unblocking mid-day would hand back the saved time that app already
+     * cost — the reward high-water mark never claws back — and re-blocking afterwards
+     * would keep the windfall.
      */
     open suspend fun fetchAndPersistToday(
         flaggedPackages: Set<String>,
@@ -35,11 +41,13 @@ open class ScreenTimeRepository(
         allowances: Map<String, Long> = emptyMap(),
     ): Long {
         val endMs = Clock.System.now().toEpochMilliseconds()
+        val today = today()
+        val effectiveFlagged = flaggedPackages + dao.packagesForDate(today)
         val flagged: List<AppUsage> = tracker.getUsageForPeriod(startOfDayMs, endMs)
-            .filter { it.packageName in flaggedPackages }
+            .filter { it.packageName in effectiveFlagged }
 
         for (usage in flagged) {
-            dao.upsert(ScreenTimeRecord(usage.packageName, today(), usage.totalForegroundMs))
+            dao.upsert(ScreenTimeRecord(usage.packageName, today, usage.totalForegroundMs))
         }
 
         val flaggedForegroundMs = flagged.sumOf { usage ->
