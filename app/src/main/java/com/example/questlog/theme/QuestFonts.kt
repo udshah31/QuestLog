@@ -29,7 +29,7 @@ private fun SerifPreview() {
                 .background(QuestLogTheme.colors.ground)
                 .padding(20.dp),
         ) {
-            Text("Questlog", style = QuestType.wordmark, color = QuestLogTheme.colors.inkPrimary)
+            Text("questlog", style = QuestType.wordmark, color = QuestLogTheme.colors.inkPrimary)
             Text("1h 30m", style = QuestType.display, color = QuestLogTheme.colors.inkPrimary)
             Text("2h", style = QuestType.displayItalic, color = QuestLogTheme.colors.earned)
         }

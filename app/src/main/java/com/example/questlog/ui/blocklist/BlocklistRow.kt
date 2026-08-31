@@ -104,7 +104,8 @@ fun BlocklistRow(
             )
         }
         AnimatedVisibility(visible = row.blocked) {
-            Column {
+            // Indent to align under the app name: icon (28dp) + row gap (md).
+            Column(Modifier.padding(start = 28.dp + QuestSpacing.md)) {
                 Spacer(Modifier.height(QuestSpacing.sm))
                 Text("DAILY LIMIT", style = QuestType.label, color = c.inkMuted)
                 Spacer(Modifier.height(QuestSpacing.xs))

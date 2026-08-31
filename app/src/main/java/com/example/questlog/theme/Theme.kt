@@ -31,13 +31,16 @@ private fun schemeFor(c: QuestColors, dark: Boolean) = if (dark) {
 
 @Composable
 fun QuestLogTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    @Suppress("UNUSED_PARAMETER") darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val colors = if (darkTheme) questDarkColors else questLightColors
+    // Palette #1 is the app's only scheme for now; dark mode is not yet designed. The
+    // darkTheme parameter and schemeFor's dark branch are kept so a real dark theme can
+    // be reintroduced without reworking the plumbing.
+    val colors = questLightColors
     CompositionLocalProvider(LocalQuestColors provides colors) {
         MaterialTheme(
-            colorScheme = schemeFor(colors, darkTheme),
+            colorScheme = schemeFor(colors, dark = false),
             typography = QuestTypography,
             shapes = QuestShapes,
             content = content,

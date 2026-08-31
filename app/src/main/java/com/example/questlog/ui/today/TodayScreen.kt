@@ -47,7 +47,7 @@ fun TodayScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Questlog", style = QuestType.wordmark, color = c.inkPrimary)
+                Text("questlog", style = QuestType.wordmark, color = c.inkPrimary)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(QuestSpacing.sm),

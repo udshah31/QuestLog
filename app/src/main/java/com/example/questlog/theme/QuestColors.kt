@@ -21,35 +21,28 @@ data class QuestColors(
     val scrim: Color,
 )
 
-val questDarkColors = QuestColors(
-    groundTop = Color(0xFF141B2E),
-    ground = Color(0xFF0B0E17),
-    surface = Color(0xFF161C2B),
-    surfaceRaised = Color(0xFF1E2536),
-    rule = Color(0x29969EC0),           // rgba(150,158,192,0.16)
-    inkPrimary = Color(0xFFE5E8F2),
-    inkSecondary = Color(0xFFA9B0C7),
-    inkMuted = Color(0xFF828BA8),
-    earned = Color(0xFF6EE7D4),
-    currency = Color(0xFFE0A458),
-    locked = Color(0xFFA78BE6),
-    scrim = Color(0x9E06080E),          // rgba(6,8,14,0.62)
+/**
+ * Palette #1 — charcoal ink on paper-white, a single red accent. This is the app's only
+ * colour scheme for now. Gold and Pro/locked have no dedicated hue in the palette: gold
+ * falls back to slate grey, Pro/locked reuses the red accent.
+ */
+val questLightColors = QuestColors(
+    groundTop = Color(0xFFFDF6F6),      // paper with the faintest warm cast at the gradient top
+    ground = Color(0xFFFAF7FF),         // palette · paper
+    surface = Color(0xFFFFFFFF),
+    surfaceRaised = Color(0xFFEDEBF2),
+    rule = Color(0x26303841),           // #303841 @ 15%
+    inkPrimary = Color(0xFF303841),     // palette
+    inkSecondary = Color(0xFF48545C),   // palette
+    inkMuted = Color(0xFF5E6A72),       // derived — clears WCAG AA on paper and white
+    earned = Color(0xFFD72323),         // palette · the one accent
+    currency = Color(0xFF48545C),       // no gold in the palette → slate grey
+    locked = Color(0xFFD72323),         // Pro / locked markers reuse the red accent
+    scrim = Color(0x59303841),          // #303841 @ 35% — modal scrim over paper
 )
 
-val questLightColors = QuestColors(
-    groundTop = Color(0xFFFBFAF6),
-    ground = Color(0xFFF1F2F7),
-    surface = Color(0xFFFFFFFF),
-    surfaceRaised = Color(0xFFECEDF3),
-    rule = Color(0x337880A0),           // rgba(120,128,160,0.20)
-    inkPrimary = Color(0xFF1F2333),
-    inkSecondary = Color(0xFF4B5168),
-    inkMuted = Color(0xFF676D85),
-    earned = Color(0xFF0A7060),
-    currency = Color(0xFF8C5C11),
-    locked = Color(0xFF6B4FC7),
-    scrim = Color(0x4D141628),          // rgba(20,22,40,0.30)
-)
+/** Dark mode is not yet designed for Palette #1; it falls back to the same scheme. */
+val questDarkColors = questLightColors
 
 val LocalQuestColors = staticCompositionLocalOf { questDarkColors }
 

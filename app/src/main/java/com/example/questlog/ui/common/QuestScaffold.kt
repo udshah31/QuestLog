@@ -53,7 +53,7 @@ fun QuestScaffold(
 private fun PrimitivesPreview() {
     QuestLogTheme {
         QuestScaffold(header = {
-            androidx.compose.material3.Text("Questlog", style = com.example.questlog.theme.QuestType.wordmark, color = QuestLogTheme.colors.inkPrimary)
+            androidx.compose.material3.Text("questlog", style = com.example.questlog.theme.QuestType.wordmark, color = QuestLogTheme.colors.inkPrimary)
         }) {
             androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.height(QuestSpacing.md))
             Hairline()

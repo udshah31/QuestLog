@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Palette #1 paper ground — matches QuestColors.questLightColors.ground so cold start
+         does not flash a different background before Compose draws. -->
+    <color name="quest_window_background">#FFFAF7FF</color>
+</resources>
