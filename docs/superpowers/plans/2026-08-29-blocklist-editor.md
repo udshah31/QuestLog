@@ -2123,9 +2123,10 @@ git commit -m "Docs: in-app blocklist editor"
   app mid-day gets the full remaining daily budget paid out, then re-blocks and
   keeps the gold. Accepted: single-player, gold only buys buildings in your own
   realm, no leaderboard; reworking the high-water-mark design is out of scope.
-- **Rows re-sort under the finger.** The Distractions list sorts blocked-first
-  live, so toggling an app at the bottom teleports it to the top. A stable
-  session order is a follow-up (needs its own test + product call).
+- ~~**Rows re-sort under the finger.**~~ Fixed in a follow-up
+  (`fix/blocklist-stable-sort`): the row order is frozen in a dedicated `order`
+  flow, recomputed only on screen entry via `BlocklistIntent.Regroup`; toggles
+  flip the switch in place.
 - **Stale `screen_time_records` inflate `BUDGET_GUARDIAN`.** Unblocking a heavy
   app at noon leaves its morning foreground time counting toward "all distraction
   apps under 30 min" until midnight. Self-heals daily; row cleanup on unblock is

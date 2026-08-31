@@ -33,6 +33,9 @@ sealed interface BlocklistIntent {
     data class SetLimit(val packageName: String, val dailyLimitMs: Long) : BlocklistIntent
     data class SetQuery(val query: String) : BlocklistIntent
     data object RecheckPermission : BlocklistIntent
+
+    /** Re-group blocked apps to the top. Fired on screen entry, never on a toggle. */
+    data object Regroup : BlocklistIntent
 }
 
 class BlocklistViewModel(
@@ -47,37 +50,61 @@ class BlocklistViewModel(
     private val query = MutableStateFlow("")
     private val permission = MutableStateFlow(isUsageAccessGranted())
 
+    /**
+     * The row order, by package name. Blocked-first then A–Z, recomputed only on
+     * screen entry ([BlocklistIntent.Regroup]) — never on a toggle, so a row the
+     * user just flipped stays where their finger is.
+     */
+    private val order = MutableStateFlow<List<String>>(emptyList())
+
     init {
         viewModelScope.launch {
             installed.value = installedApps.launchableApps()
                 .map { AppMeta(it.packageName, it.label, it.icon) }
+            recomputeOrder()
         }
+    }
+
+    private suspend fun recomputeOrder() {
+        val apps = installed.value ?: return
+        val blockedPkgs = blocklistRepo.current().mapTo(mutableSetOf()) { it.packageName }
+        order.value = apps
+            .sortedWith(
+                compareByDescending<AppMeta> { it.packageName in blockedPkgs }
+                    .thenBy { it.label.lowercase() },
+            )
+            .map { it.packageName }
     }
 
     val uiState: StateFlow<BlocklistUiState> =
         combine(
             installed,
+            order,
             blocklistRepo.observeBlockedApps(),
             query,
             permission,
-        ) { apps, blocked, q, granted ->
+        ) { apps, ord, blocked, q, granted ->
             if (apps == null) {
                 BlocklistUiState(loading = true, permissionGranted = granted, query = q)
             } else {
+                val metaByPkg = apps.associateBy { it.packageName }
                 val byPkg: Map<String, BlockedApp> = blocked.associateBy { it.packageName }
-                val rows = apps
-                    .filter { q.isBlank() || it.label.contains(q, ignoreCase = true) }
-                    .map { meta ->
-                        val b = byPkg[meta.packageName]
+                // Follow the frozen order; before the first recompute, fall back to the
+                // provider's own (alphabetical) order so nothing flickers.
+                val pkgOrder = ord.ifEmpty { apps.map { it.packageName } }
+                val rows = pkgOrder
+                    .mapNotNull { pkg ->
+                        val meta = metaByPkg[pkg] ?: return@mapNotNull null
+                        val b = byPkg[pkg]
                         AppRow(
-                            packageName = meta.packageName,
+                            packageName = pkg,
                             label = meta.label,
                             icon = meta.icon,
                             blocked = b != null,
                             dailyLimitMs = b?.dailyLimitMs ?: 0L,
                         )
                     }
-                    .sortedWith(compareByDescending<AppRow> { it.blocked }.thenBy { it.label.lowercase() })
+                    .filter { q.isBlank() || it.label.contains(q, ignoreCase = true) }
                 BlocklistUiState(loading = false, permissionGranted = granted, rows = rows, query = q)
             }
         }.stateIn(viewModelScope, SharingStarted.Eagerly, BlocklistUiState())
@@ -93,6 +120,7 @@ class BlocklistViewModel(
             }
             is BlocklistIntent.SetQuery -> query.value = intent.query
             BlocklistIntent.RecheckPermission -> permission.value = isUsageAccessGranted()
+            BlocklistIntent.Regroup -> viewModelScope.launch { recomputeOrder() }
         }
     }
 }

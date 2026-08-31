@@ -128,4 +128,49 @@ class BlocklistViewModelTest {
         advanceUntilIdle()
         assertTrue(model.uiState.first().permissionGranted)
     }
+
+    private val threeApps = listOf(
+        InstalledApp("com.a", "Alpha", null),
+        InstalledApp("com.b", "Bravo", null),
+        InstalledApp("com.c", "Charlie", null),
+    )
+
+    @Test
+    fun `toggling an app does not move it in the list`() = runTest {
+        // Charlie is blocked at start -> grouped first: [com.c, com.a, com.b]
+        val dao = FakeBlocklistDao().apply { rows.add(BlockedAppEntity("com.c", 0L)) }
+        val model = vm(apps = threeApps, dao = dao)
+        advanceUntilIdle()
+        assertEquals(listOf("com.c", "com.a", "com.b"), model.uiState.first().rows.map { it.packageName })
+
+        model.onIntent(BlocklistIntent.ToggleBlocked("com.c"))
+        advanceUntilIdle()
+
+        val rows = model.uiState.first().rows
+        assertEquals(
+            listOf("com.c", "com.a", "com.b"),
+            rows.map { it.packageName },
+            "row position is stable across a toggle",
+        )
+        assertFalse(rows.first { it.packageName == "com.c" }.blocked, "but the switch state updated")
+    }
+
+    @Test
+    fun `Regroup re-groups newly blocked apps to the top`() = runTest {
+        val model = vm(
+            apps = listOf(InstalledApp("com.a", "Alpha", null), InstalledApp("com.z", "Zeta", null)),
+        )
+        advanceUntilIdle()
+        assertEquals(listOf("com.a", "com.z"), model.uiState.first().rows.map { it.packageName })
+
+        model.onIntent(BlocklistIntent.ToggleBlocked("com.z"))
+        advanceUntilIdle()
+        // toggle alone does not reorder
+        assertEquals(listOf("com.a", "com.z"), model.uiState.first().rows.map { it.packageName })
+
+        model.onIntent(BlocklistIntent.Regroup)
+        advanceUntilIdle()
+        // Regroup pulls the now-blocked app to the top
+        assertEquals(listOf("com.z", "com.a"), model.uiState.first().rows.map { it.packageName })
+    }
 }
