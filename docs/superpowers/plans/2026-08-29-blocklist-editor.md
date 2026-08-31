@@ -2118,19 +2118,20 @@ git commit -m "Docs: in-app blocklist editor"
 
 ### Known trade-offs accepted at merge (final-review findings, deliberately not fixed)
 
-- **The detox reward becomes farmable.** `awardedSavedMsToday` is a monotonic
-  high-water mark and rewards are never clawed back, so a user who unblocks every
-  app mid-day gets the full remaining daily budget paid out, then re-blocks and
-  keeps the gold. Accepted: single-player, gold only buys buildings in your own
-  realm, no leaderboard; reworking the high-water-mark design is out of scope.
+- ~~**The detox reward becomes farmable.**~~ Fixed in a follow-up
+  (`fix/blocklist-farmable-reward`): `fetchAndPersistToday` now charges the union
+  of the current blocklist and every app with a `screen_time_records` row for
+  today, so unblocking mid-day hands nothing back (a since-unblocked app is
+  charged in full). Resets at midnight; no schema change.
 - ~~**Rows re-sort under the finger.**~~ Fixed in a follow-up
   (`fix/blocklist-stable-sort`): the row order is frozen in a dedicated `order`
   flow, recomputed only on screen entry via `BlocklistIntent.Regroup`; toggles
   flip the switch in place.
-- **Stale `screen_time_records` inflate `BUDGET_GUARDIAN`.** Unblocking a heavy
-  app at noon leaves its morning foreground time counting toward "all distraction
-  apps under 30 min" until midnight. Self-heals daily; row cleanup on unblock is
-  scope creep on the quest layer.
+- **`BUDGET_GUARDIAN` counts since-unblocked apps until midnight.** Unblocking a
+  heavy app at noon leaves its foreground time counting toward "all distraction
+  apps under 30 min" for the rest of the day. Now consistent with the reward
+  fix above (both charge apps that were blocked at any tick today); self-heals
+  daily. Accepted.
 - **`expect class ScreenTimeTracker` is not `open` but the desktop `actual` is**
   (widened to support test stubbing). Harmless — `:shared` has no Android
   unit-test compilation — but forecloses `withHostTest` on the Android target.
