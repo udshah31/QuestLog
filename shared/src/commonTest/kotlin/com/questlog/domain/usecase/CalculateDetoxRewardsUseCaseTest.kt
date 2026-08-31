@@ -7,6 +7,7 @@ import com.questlog.data.local.entity.ScreenTimeRecord
 import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.ScreenTimeRepository
 import com.questlog.domain.model.AppUsage
+import com.questlog.domain.model.BlockedApp
 import com.questlog.domain.platform.ScreenTimeTracker
 import com.questlog.util.TimeConversion
 import kotlinx.coroutines.flow.Flow
@@ -14,8 +15,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atTime
 import kotlinx.datetime.minus
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -24,6 +28,13 @@ import kotlin.test.assertTrue
 private fun today() = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
 private fun daysAgoKey(n: Int) = today().minus(n, DateTimeUnit.DAY).toString()
 private const val HOUR_MS = 60 * 60_000L
+
+private fun blocked(vararg pkgs: String): suspend () -> List<BlockedApp> =
+    { pkgs.map { BlockedApp(it, 0L) } }
+
+private class PinnedClock(private val instant: Instant) : Clock {
+    override fun now(): Instant = instant
+}
 
 class FakeScreenTimeDao : ScreenTimeDao {
     val records = mutableListOf<ScreenTimeRecord>()
@@ -84,7 +95,11 @@ private class StubScreenTimeRepo(
 ) : ScreenTimeRepository(FakeScreenTimeDao(), ScreenTimeTracker()) {
     var callCount = 0
         private set
-    override suspend fun fetchAndPersistToday(flaggedPackages: Set<String>, startOfDayMs: Long): Long {
+    override suspend fun fetchAndPersistToday(
+        flaggedPackages: Set<String>,
+        startOfDayMs: Long,
+        allowances: Map<String, Long>,
+    ): Long {
         callCount++
         return savedMs
     }
@@ -105,7 +120,7 @@ class CalculateDetoxRewardsUseCaseTest {
         val useCase = CalculateDetoxRewardsUseCase(
             screenTimeRepo = screenTimeRepo,
             currencyRepo = currencyRepo,
-            flaggedPackages = setOf("com.instagram.android"),
+            blockedApps = blocked("com.instagram.android"),
         )
 
         val metrics = useCase()
@@ -130,7 +145,7 @@ class CalculateDetoxRewardsUseCaseTest {
         val useCase = CalculateDetoxRewardsUseCase(
             screenTimeRepo = screenTimeRepo,
             currencyRepo = currencyRepo,
-            flaggedPackages = setOf("com.instagram.android"),
+            blockedApps = blocked("com.instagram.android"),
         )
 
         val metrics = useCase()
@@ -150,7 +165,7 @@ class CalculateDetoxRewardsUseCaseTest {
         val useCase = CalculateDetoxRewardsUseCase(
             screenTimeRepo = screenTimeRepo,
             currencyRepo = currencyRepo,
-            flaggedPackages = setOf("com.instagram.android"),
+            blockedApps = blocked("com.instagram.android"),
         )
 
         val first = useCase()
@@ -213,12 +228,52 @@ class CalculateDetoxRewardsUseCaseTest {
         assertEquals(240L, metrics.goldEarned)
     }
 
+    @Test
+    fun `the blocked app's daily limit is honored - a larger limit charges less foreground time`() = runTest {
+        // Identical fixed usage for both runs: one flagged app, 10 min of foreground.
+        val usage = listOf(AppUsage("com.insta", 10 * 60_000L))
+
+        // Pin the clock to today at local midday so `elapsed` since local midnight is
+        // deterministic and comfortably ≥ 90 min for both runs.
+        val tz = TimeZone.currentSystemDefault()
+        val noon = Clock.System.now().toLocalDateTime(tz).date.atTime(12, 0).toInstant(tz)
+
+        suspend fun savedTimeWithLimit(dailyLimitMs: Long): Long {
+            // Fresh DAOs / repos per run so the high-water mark is not shared.
+            val currencyDao = FakeCurrencyDao()
+            val screenTimeRepo = ScreenTimeRepository(
+                FakeScreenTimeDao(),
+                object : ScreenTimeTracker() {
+                    override suspend fun getUsageForPeriod(startMs: Long, endMs: Long) = usage
+                    override fun isPermissionGranted() = true
+                },
+            )
+            CalculateDetoxRewardsUseCase(
+                screenTimeRepo = screenTimeRepo,
+                currencyRepo = CurrencyRepository(currencyDao),
+                blockedApps = { listOf(BlockedApp("com.insta", dailyLimitMs)) },
+                clock = PinnedClock(noon),
+            )()
+            return currencyDao.balance.awardedSavedMsToday
+        }
+
+        // Run A: generous 60 min limit -> 10 min usage is fully within it -> nothing charged.
+        val savedGenerous = savedTimeWithLimit(60 * 60_000L)
+        // Run B: 0 limit -> app is fully blocked -> all 10 min is charged.
+        val savedBlocked = savedTimeWithLimit(0L)
+
+        // Same usage, same wall-clock elapsed: the only difference is the allowance map
+        // reaching fetchAndPersistToday, which must spare exactly the 10 min of usage.
+        assertTrue(savedGenerous > savedBlocked, "a bigger limit must keep more saved time")
+        assertEquals(10 * 60_000L, savedGenerous - savedBlocked)
+    }
+
     private fun useCaseFor(
         repo: ScreenTimeRepository,
         currencyRepo: CurrencyRepository,
         isPremium: () -> Boolean = { false },
     ) = CalculateDetoxRewardsUseCase(
-        repo, currencyRepo, setOf("com.instagram.android"),
+        repo, currencyRepo, blocked("com.instagram.android"),
         isPremium = isPremium,
     )
 

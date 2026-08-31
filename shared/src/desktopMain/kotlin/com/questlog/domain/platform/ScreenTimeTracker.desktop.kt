@@ -2,12 +2,12 @@ package com.questlog.domain.platform
 
 import com.questlog.domain.model.AppUsage
 
-actual class ScreenTimeTracker {
-    actual suspend fun getUsageForPeriod(startMs: Long, endMs: Long): List<AppUsage> {
+actual open class ScreenTimeTracker {
+    actual open suspend fun getUsageForPeriod(startMs: Long, endMs: Long): List<AppUsage> {
         return emptyList()
     }
 
-    actual fun isPermissionGranted(): Boolean {
+    actual open fun isPermissionGranted(): Boolean {
         return true
     }
 }

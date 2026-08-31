@@ -13,4 +13,11 @@ object DetoxBudget {
 
     fun savedTimeMs(budgetMs: Long, elapsedMs: Long, flaggedForegroundMs: Long): Long =
         (minOf(budgetMs, elapsedMs) - flaggedForegroundMs).coerceAtLeast(0L)
+
+    /**
+     * The part of [usageMs] that counts against the player: everything beyond
+     * [allowanceMs]. An allowance of 0 charges the full usage (fully-blocked app).
+     */
+    fun chargeableMs(usageMs: Long, allowanceMs: Long): Long =
+        (usageMs - allowanceMs).coerceAtLeast(0L)
 }

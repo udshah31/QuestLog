@@ -29,6 +29,7 @@ See `README.md` for architecture.
 - `ScreenTimeRepository` and `DetoxMonitorFlow` are `open` so tests can stub them — a real `DetoxMonitorFlow` in a `runTest` + `advanceUntilIdle()` hangs (infinite `while(true){ delay() }`).
 - `DashboardViewModelTest` sets `Dispatchers.setMain(StandardTestDispatcher())` before `runTest` so they share a scheduler.
 - Daily quests rotate: 3 of an 8-quest pool are active per day via `questsForDay(date)` (sliding window, `epochDays mod 8`). Quest tests derive the test date from the window they need (`dateWithWindow(...)` helper in `EvaluateDailyQuestsUseCaseTest`) rather than hardcoding one. `DailyQuestRepository` takes an injectable `clock`/`timeZone`.
+- `BlocklistDaoTest` builds the in-memory DB with `.addCallback(questLogSeedCallback)` to exercise the fresh-install seed.
 
 ## Invariants / gotchas
 
@@ -41,3 +42,8 @@ See `README.md` for architecture.
 - `versionCode` is computed in `app/build.gradle.kts` from `git rev-list --count HEAD` (via
   `providers.exec`, so it stays config-cache safe); `ANDROID_VERSION_CODE` env var overrides.
   `deploy-internal.yml` needs its `fetch-depth: 0` for the count to be correct.
+- The distraction list is the `blocked_app` table (`BlocklistRepository`), seeded with
+  `defaultFlaggedPackages` (now in `domain/model/DefaultBlocklist.kt`) via `MIGRATION_7_8`
+  and the `questLogSeedCallback` on fresh installs. The detox use cases read it live
+  through a `suspend () -> List<BlockedApp>` supplier; per-app `dailyLimitMs` is an
+  allowance — only overage counts (`DetoxBudget.chargeableMs`).

@@ -23,10 +23,16 @@ open class ScreenTimeRepository(
      * Records each flagged app's foreground time for today and returns the day's "saved
      * time" so far: of the elapsed portion of [dailyBudgetMs], the part not spent on
      * flagged apps (see [DetoxBudget]).
+     *
+     * Raw per-app foreground time is always persisted. [allowances] (package -> daily
+     * allowance ms) only affects the reward input: per app, just the usage beyond its
+     * allowance is charged (see [DetoxBudget.chargeableMs]). The default empty map
+     * charges every flagged millisecond.
      */
     open suspend fun fetchAndPersistToday(
         flaggedPackages: Set<String>,
         startOfDayMs: Long,
+        allowances: Map<String, Long> = emptyMap(),
     ): Long {
         val endMs = Clock.System.now().toEpochMilliseconds()
         val flagged: List<AppUsage> = tracker.getUsageForPeriod(startOfDayMs, endMs)
@@ -36,7 +42,9 @@ open class ScreenTimeRepository(
             dao.upsert(ScreenTimeRecord(usage.packageName, today(), usage.totalForegroundMs))
         }
 
-        val flaggedForegroundMs = flagged.sumOf { it.totalForegroundMs }
+        val flaggedForegroundMs = flagged.sumOf { usage ->
+            DetoxBudget.chargeableMs(usage.totalForegroundMs, allowances[usage.packageName] ?: 0L)
+        }
         return DetoxBudget.savedTimeMs(
             budgetMs = dailyBudgetMs,
             elapsedMs = endMs - startOfDayMs,

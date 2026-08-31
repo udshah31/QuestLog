@@ -1,5 +1,6 @@
 package com.questlog.data.local
 
+import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
@@ -67,6 +68,43 @@ internal val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
+/** v8: user-editable distraction list. Seeds the seven historical defaults. */
+internal val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `blocked_app` (" +
+                "`packageName` TEXT NOT NULL, `dailyLimitMs` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`packageName`))"
+        )
+        val seed = listOf(
+            "com.instagram.android", "com.zhiliaoapp.musically", "com.snapchat.android",
+            "com.twitter.android", "com.reddit.frontpage", "com.google.android.youtube",
+            "com.facebook.katana",
+        )
+        for (pkg in seed) {
+            connection.execSQL(
+                "INSERT OR IGNORE INTO `blocked_app` (`packageName`, `dailyLimitMs`) VALUES ('$pkg', 0)"
+            )
+        }
+    }
+}
+
+/**
+ * Seeds `blocked_app` on a fresh database (fresh installs never run migrations).
+ * Uses the live [com.questlog.domain.model.defaultFlaggedPackages] — unlike a
+ * migration, this always represents "the current default", which is the right
+ * behaviour for a new user.
+ */
+val questLogSeedCallback = object : RoomDatabase.Callback() {
+    override fun onCreate(connection: SQLiteConnection) {
+        for (pkg in com.questlog.domain.model.defaultFlaggedPackages) {
+            connection.execSQL(
+                "INSERT OR IGNORE INTO `blocked_app` (`packageName`, `dailyLimitMs`) VALUES ('$pkg', 0)"
+            )
+        }
+    }
+}
+
 /** Every migration the app database ships, in order. */
 internal val questLogMigrations: Array<Migration> =
-    arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+    arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)

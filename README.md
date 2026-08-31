@@ -23,10 +23,11 @@ QuestLog
 ```
 
 The `app` UI is two screens — **Today** (streak ring, level, quest ledger, realm
-summary) and **Realm** (the build grid) — plus the Pro paywall dialog, hosted by
-`ui/QuestLogRoot.kt` with no navigation library. A `QuestColors` token system drives
-a `QuestLogTheme` with matched light ("dawn") and dark ("nightfall") palettes; the
-*Instrument Serif* display face is bundled (`app/src/main/res/font/`).
+summary) and **Realm** (the build grid) — plus **Distractions** (the blocklist editor,
+reached from the Today gear) and the Pro paywall dialog, hosted by `ui/QuestLogRoot.kt`
+with no navigation library. A `QuestColors` token system drives a `QuestLogTheme` with
+matched light ("dawn") and dark ("nightfall") palettes; the *Instrument Serif* display
+face is bundled (`app/src/main/res/font/`).
 
 The `jvm("desktop")` target in `shared` carries no product code. It exists purely so
 `commonTest` — and a real in‑memory Room database — can run on the JVM in seconds
@@ -56,12 +57,12 @@ flowchart TD
 
 | Layer | Pieces |
 |---|---|
-| `domain/model` | `PlayerStats`, `DetoxMetrics`, `CityTile`, `AppUsage`, `DailyQuest` |
+| `domain/model` | `PlayerStats`, `DetoxMetrics`, `CityTile`, `AppUsage`, `DailyQuest`, `BlockedApp` |
 | `domain/quest` | `QuestCatalog` — the 3 fixed quest definitions + their thresholds |
 | `domain/platform` | `expect class ScreenTimeTracker` — Android: `UsageStatsManager` event API; desktop: returns empty |
 | `domain/usecase` | `CalculateDetoxRewardsUseCase`, `EvaluateDailyQuestsUseCase`, `DetoxMonitorFlow`, `GetDashboardStatsUseCase`, `PurchaseBuildingUseCase` |
-| `data/repository` | `ScreenTimeRepository`, `CurrencyRepository`, `InventoryRepository`, `DailyQuestRepository` |
-| `data/local` | `QuestLogDatabase` (`@ConstructedBy`, bundled SQLite driver) + 4 entities / DAOs, `QuestLogMigrations`, `ItemTypeConverter` |
+| `data/repository` | `ScreenTimeRepository`, `CurrencyRepository`, `InventoryRepository`, `DailyQuestRepository`, `BlocklistRepository` |
+| `data/local` | `QuestLogDatabase` (`@ConstructedBy`, bundled SQLite driver) + 5 entities / DAOs (`currency_balance`, `screen_time_records`, `inventory_items`, `quest_completions`, `blocked_app`), `QuestLogMigrations`, `ItemTypeConverter` |
 | `util` | `TimeConversion` (reward / level math), `DetoxBudget` (saved-time formula), `StreakFreeze` (Pro streak-freeze recharge rule) — pure, fully unit-tested |
 | `di` | `sharedModule` + `platformModule` (Koin) |
 
@@ -170,8 +171,9 @@ on push to `main` — see [Deploy](#deploy).
 
 ## Configuration
 
-- **Distraction apps**: `defaultFlaggedPackages` in `di/SharedModule.kt` (Instagram,
-  TikTok, Snapchat, X, Reddit, YouTube, Facebook).
+- **Distraction apps**: the live list is the user-editable `blocked_app` table
+  (`BlocklistRepository`), edited on the Distractions screen; a fresh install is seeded
+  from `domain/model/DefaultBlocklist.kt` (Instagram, TikTok, Snapchat, X, Reddit, YouTube, Facebook).
 - **Budgets / thresholds** are constructor params with defaults: the 90‑minute saved-time
   budget (`ScreenTimeRepository`), the 60‑minute streak budget
   (`CalculateDetoxRewardsUseCase`), and the quest constants in `QuestCatalog`.

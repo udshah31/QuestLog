@@ -14,6 +14,7 @@ import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.DailyQuestRepository
 import com.questlog.data.repository.InventoryRepository
 import com.questlog.data.repository.ScreenTimeRepository
+import com.questlog.domain.model.BlockedApp
 import com.questlog.domain.model.CityTile
 import com.questlog.domain.model.DetoxMetrics
 import com.questlog.domain.platform.ScreenTimeTracker
@@ -128,7 +129,7 @@ class DashboardViewModelTest {
         val screenTimeRepo = ScreenTimeRepository(screenTimeDao, ScreenTimeTracker())
 
         val getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo)
-        val calculateDetox = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, setOf("com.instagram.android"))
+        val calculateDetox = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, { listOf(BlockedApp("com.instagram.android", 0L)) })
         val purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo)
         val billingManager = BillingManager()
 
@@ -162,7 +163,7 @@ class DashboardViewModelTest {
 
         val viewModel = DashboardViewModel(
             getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo),
-            calculateDetoxRewards = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, setOf("com.instagram.android")),
+            calculateDetoxRewards = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, { listOf(BlockedApp("com.instagram.android", 0L)) }),
             detoxMonitor = silentMonitor(),
             purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),
             dailyQuestRepo = DailyQuestRepository(FakeQuestDao()),
@@ -189,7 +190,7 @@ class DashboardViewModelTest {
 
         val viewModel = DashboardViewModel(
             getDashboardStats = GetDashboardStatsUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao)),
-            calculateDetoxRewards = CalculateDetoxRewardsUseCase(ScreenTimeRepository(screenTimeDao, ScreenTimeTracker()), CurrencyRepository(currencyDao), setOf("com.instagram.android")),
+            calculateDetoxRewards = CalculateDetoxRewardsUseCase(ScreenTimeRepository(screenTimeDao, ScreenTimeTracker()), CurrencyRepository(currencyDao), { listOf(BlockedApp("com.instagram.android", 0L)) }),
             detoxMonitor = silentMonitor(),
             purchaseBuilding = PurchaseBuildingUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao)),
             dailyQuestRepo = DailyQuestRepository(FakeQuestDao()),
@@ -222,7 +223,7 @@ class DashboardViewModelTest {
 
         DashboardViewModel(
             getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo),
-            calculateDetoxRewards = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, setOf("com.instagram.android")),
+            calculateDetoxRewards = CalculateDetoxRewardsUseCase(screenTimeRepo, currencyRepo, { listOf(BlockedApp("com.instagram.android", 0L)) }),
             detoxMonitor = monitor,
             purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),
             dailyQuestRepo = DailyQuestRepository(FakeQuestDao()),

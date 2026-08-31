@@ -4,6 +4,7 @@ import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.DailyQuestRepository
 import com.questlog.data.repository.InventoryRepository
 import com.questlog.data.repository.ScreenTimeRepository
+import com.questlog.domain.model.BlockedApp
 import com.questlog.domain.quest.BUDGET_GUARDIAN_MAX_FLAGGED_MS
 import com.questlog.domain.quest.CENTURY_SAVER_MIN_SAVED_MS
 import com.questlog.domain.quest.DAWN_DISCIPLINE_END_HOUR
@@ -34,7 +35,7 @@ class EvaluateDailyQuestsUseCase(
     private val inventoryRepo: InventoryRepository,
     private val currencyRepo: CurrencyRepository,
     private val questRepo: DailyQuestRepository,
-    private val flaggedPackages: Set<String>,
+    private val blockedApps: suspend () -> List<BlockedApp>,
     private val clock: Clock = Clock.System,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
@@ -46,10 +47,11 @@ class EvaluateDailyQuestsUseCase(
         val nowMs = now.toEpochMilliseconds()
 
         val alreadyDone = questRepo.completedIds(todayKey).toSet()
+        val flaggedPackages = blockedApps().mapTo(mutableSetOf()) { it.packageName }
 
         for (quest in questsForDay(today)) {
             if (quest.id in alreadyDone) continue
-            if (!isComplete(quest.id, todayKey, startOfDayMs, nowMs, today)) continue
+            if (!isComplete(quest.id, todayKey, startOfDayMs, nowMs, today, flaggedPackages)) continue
             if (questRepo.markCompleted(todayKey, quest.id)) {
                 currencyRepo.addRewards(quest.xpReward, quest.goldReward)
             }
@@ -62,6 +64,7 @@ class EvaluateDailyQuestsUseCase(
         startOfDayMs: Long,
         nowMs: Long,
         today: LocalDate,
+        flaggedPackages: Set<String>,
     ): Boolean = when (questId) {
         QuestIds.DIGITAL_FASTING ->
             screenTimeRepo.foregroundMsForPackageOnDate(DIGITAL_FASTING_PACKAGE, todayKey) <= DIGITAL_FASTING_MAX_MS

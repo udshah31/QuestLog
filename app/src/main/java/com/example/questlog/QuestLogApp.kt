@@ -2,6 +2,8 @@ package com.example.questlog
 
 import android.app.Application
 import com.example.questlog.billing.BillingManager
+import com.example.questlog.data.InstalledAppsProvider
+import com.example.questlog.data.PackageManagerAppsProvider
 import com.example.questlog.ui.dashboard.DashboardViewModel
 import com.questlog.di.platformModule
 import com.questlog.domain.PremiumStatusProvider
@@ -17,7 +19,15 @@ import org.koin.dsl.module
 val appModule = module {
     single { BillingManager() }
     single<PremiumStatusProvider> { PremiumStatusProvider { get<BillingManager>().isPremium.value } }
+    single<InstalledAppsProvider> { PackageManagerAppsProvider(get()) }
     viewModel { DashboardViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel {
+        com.example.questlog.ui.blocklist.BlocklistViewModel(
+            blocklistRepo = get(),
+            installedApps = get(),
+            isUsageAccessGranted = { get<com.questlog.data.repository.ScreenTimeRepository>().isPermissionGranted() },
+        )
+    }
 }
 
 class QuestLogApp : Application() {

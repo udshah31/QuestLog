@@ -1,5 +1,6 @@
 package com.questlog.di
 
+import com.questlog.data.repository.BlocklistRepository
 import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.DailyQuestRepository
 import com.questlog.data.repository.InventoryRepository
@@ -12,25 +13,13 @@ import com.questlog.domain.usecase.GetDashboardStatsUseCase
 import com.questlog.domain.usecase.PurchaseBuildingUseCase
 import org.koin.dsl.module
 
-/**
- * Default flagged distraction apps — can be overridden by user settings.
- */
-val defaultFlaggedPackages = setOf(
-    "com.instagram.android",
-    "com.zhiliaoapp.musically",         // TikTok
-    "com.snapchat.android",
-    "com.twitter.android",
-    "com.reddit.frontpage",
-    "com.google.android.youtube",
-    "com.facebook.katana",
-)
-
 val sharedModule = module {
     // Repositories
     single { ScreenTimeRepository(get(), get()) }
     single { CurrencyRepository(get()) }
     single { InventoryRepository(get()) }
     single { DailyQuestRepository(get()) }
+    single { BlocklistRepository(get()) }
 
     // Use cases
     factory {
@@ -39,7 +28,7 @@ val sharedModule = module {
             inventoryRepo = get(),
             currencyRepo = get(),
             questRepo = get(),
-            flaggedPackages = defaultFlaggedPackages,
+            blockedApps = { get<BlocklistRepository>().current() },
         )
     }
     factory {
@@ -47,7 +36,7 @@ val sharedModule = module {
         CalculateDetoxRewardsUseCase(
             screenTimeRepo = get(),
             currencyRepo = get(),
-            flaggedPackages = defaultFlaggedPackages,
+            blockedApps = { get<BlocklistRepository>().current() },
             evaluateDailyQuests = { quests() },
             isPremium = { getOrNull<PremiumStatusProvider>()?.isPremium() ?: false },
         )

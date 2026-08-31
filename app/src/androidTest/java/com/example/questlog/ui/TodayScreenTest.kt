@@ -33,7 +33,7 @@ class TodayScreenTest {
 
     @Test
     fun quest_count_and_titles_render() {
-        compose.setContent { QuestLogTheme { TodayScreen(state(), {}, {}, {}) } }
+        compose.setContent { QuestLogTheme { TodayScreen(state(), {}, {}, {}, {}) } }
         compose.onNodeWithText("1 / 3").assertIsDisplayed()
         compose.onNodeWithText("Budget Guardian").assertIsDisplayed()
     }
@@ -41,7 +41,7 @@ class TodayScreenTest {
     @Test
     fun tapping_realm_strip_invokes_onOpenRealm() {
         var opened = false
-        compose.setContent { QuestLogTheme { TodayScreen(state(), {}, {}, { opened = true }) } }
+        compose.setContent { QuestLogTheme { TodayScreen(state(), {}, {}, { opened = true }, {}) } }
         compose.onNodeWithContentDescription("Your realm, 3 of 6 built. Open.").performClick()
         assertTrue(opened)
     }
@@ -49,7 +49,7 @@ class TodayScreenTest {
     @Test
     fun get_pro_pill_invokes_onOpenPaywall() {
         var paywall = false
-        compose.setContent { QuestLogTheme { TodayScreen(state(isPremium = false), {}, { paywall = true }, {}) } }
+        compose.setContent { QuestLogTheme { TodayScreen(state(isPremium = false), {}, { paywall = true }, {}, {}) } }
         compose.onNodeWithText("GET PRO").performClick()
         assertTrue(paywall)
     }

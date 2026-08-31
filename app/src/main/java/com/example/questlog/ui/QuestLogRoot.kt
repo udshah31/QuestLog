@@ -1,5 +1,7 @@
 package com.example.questlog.ui
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -25,14 +27,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.example.questlog.ui.blocklist.BlocklistIntent
+import com.example.questlog.ui.blocklist.BlocklistScreen
+import com.example.questlog.ui.blocklist.BlocklistViewModel
 import com.example.questlog.ui.common.reducedMotion
 import com.example.questlog.ui.dashboard.DashboardIntent
 import com.example.questlog.ui.dashboard.DashboardViewModel
 import com.example.questlog.ui.paywall.PaywallDialog
 import com.example.questlog.ui.realm.RealmScreen
 import com.example.questlog.ui.today.TodayScreen
+import org.koin.compose.viewmodel.koinViewModel
 
-private enum class Screen { Today, Realm }
+private enum class Screen { Today, Realm, Blocklist }
 
 @Composable
 fun QuestLogRoot(viewModel: DashboardViewModel) {
@@ -49,7 +57,7 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
         }
     }
 
-    BackHandler(enabled = screen == Screen.Realm) { screen = Screen.Today }
+    BackHandler(enabled = screen != Screen.Today) { screen = Screen.Today }
 
     Box(Modifier.fillMaxSize()) {
         AnimatedContent(
@@ -57,7 +65,7 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
             transitionSpec = {
                 if (reduce) {
                     fadeIn(tween(120)) togetherWith fadeOut(tween(120))
-                } else if (targetState == Screen.Realm) {
+                } else if (targetState != Screen.Today) {
                     (slideInHorizontally(tween(250)) { it } + fadeIn(tween(250))) togetherWith
                         (slideOutHorizontally(tween(250)) { -it / 4 } + fadeOut(tween(250)))
                 } else {
@@ -74,6 +82,7 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
                         onRefresh = { viewModel.onIntent(DashboardIntent.Refresh) },
                         onOpenPaywall = { viewModel.onIntent(DashboardIntent.OpenPaywall) },
                         onOpenRealm = { screen = Screen.Realm },
+                        onOpenBlocklist = { screen = Screen.Blocklist },
                     )
                     Screen.Realm -> RealmScreen(
                         tiles = state.cityTiles,
@@ -81,6 +90,25 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
                         onBack = { screen = Screen.Today },
                         onTileClick = { viewModel.onIntent(DashboardIntent.Purchase(it)) },
                     )
+                    Screen.Blocklist -> {
+                        val blocklistVm = koinViewModel<BlocklistViewModel>()
+                        val blocklistState by blocklistVm.uiState.collectAsState()
+                        val context = LocalContext.current
+                        LifecycleResumeEffect(Unit) {
+                            blocklistVm.onIntent(BlocklistIntent.RecheckPermission)
+                            onPauseOrDispose { }
+                        }
+                        BlocklistScreen(
+                            state = blocklistState,
+                            onIntent = blocklistVm::onIntent,
+                            onBack = { screen = Screen.Today },
+                            onGrantAccess = {
+                                runCatching {
+                                    context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }

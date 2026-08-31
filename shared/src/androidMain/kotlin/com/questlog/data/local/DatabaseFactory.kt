@@ -15,6 +15,7 @@ object DatabaseFactory {
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
             .addMigrations(*questLogMigrations)
+            .addCallback(questLogSeedCallback)
             .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
             .build()
 }
