@@ -46,6 +46,8 @@ class FakeScreenTimeDao : ScreenTimeDao {
     override fun getByDate(date: String): Flow<List<ScreenTimeRecord>> = MutableStateFlow(records)
     override fun getSince(fromDate: String): Flow<List<ScreenTimeRecord>> = MutableStateFlow(records)
     override suspend fun totalForegroundMsForDate(date: String): Long = records.sumOf { it.foregroundMs }
+    override suspend fun packagesForDate(date: String): List<String> =
+        records.map { it.packageName }.distinct()
     override suspend fun foregroundMsForPackageOnDate(packageName: String, date: String): Long =
         records.filter { it.packageName == packageName }.sumOf { it.foregroundMs }
 }

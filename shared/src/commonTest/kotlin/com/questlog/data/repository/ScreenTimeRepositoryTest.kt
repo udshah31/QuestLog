@@ -21,6 +21,8 @@ private class MapScreenTimeDao : ScreenTimeDao {
     override fun getSince(fromDate: String): Flow<List<ScreenTimeRecord>> = MutableStateFlow(records)
     override suspend fun totalForegroundMsForDate(date: String): Long =
         records.filter { it.date == date }.sumOf { it.foregroundMs }
+    override suspend fun packagesForDate(date: String): List<String> =
+        records.filter { it.date == date }.map { it.packageName }.distinct()
     override suspend fun foregroundMsForPackageOnDate(packageName: String, date: String): Long =
         records.filter { it.date == date && it.packageName == packageName }.sumOf { it.foregroundMs }
 }
@@ -87,5 +89,54 @@ class ScreenTimeRepositoryTest {
         )
         repo.fetchAndPersistToday(setOf("com.insta"), 0L, mapOf("com.insta" to 30 * 60_000L))
         assertEquals(50 * 60_000L, dao.records.single().foregroundMs)
+    }
+
+    @Test
+    fun `an app blocked earlier today keeps counting after it is unblocked`() = runTest {
+        val repo = ScreenTimeRepository(
+            MapScreenTimeDao(),
+            StubTracker(listOf(AppUsage("com.insta", 20 * 60_000L))),
+            dailyBudgetMs = budget,
+        )
+        // tick 1: com.insta is blocked -> 20 min charged
+        repo.fetchAndPersistToday(setOf("com.insta"), startOfDayMs = 0L)
+        // tick 2: user unblocked everything to farm the reward
+        val saved = repo.fetchAndPersistToday(emptySet(), startOfDayMs = 0L)
+        assertEquals(
+            budget - 20 * 60_000L,
+            saved,
+            "unblocking mid-day must not restore the saved time it already cost",
+        )
+    }
+
+    @Test
+    fun `a fresh day with nothing blocked saves the full budget`() = runTest {
+        val repo = ScreenTimeRepository(
+            MapScreenTimeDao(),
+            StubTracker(listOf(AppUsage("com.insta", 20 * 60_000L))),
+            dailyBudgetMs = budget,
+        )
+        // no prior ticks today -> nothing was ever blocked -> full budget
+        val saved = repo.fetchAndPersistToday(emptySet(), startOfDayMs = 0L)
+        assertEquals(budget, saved)
+    }
+
+    @Test
+    fun `a since-unblocked app is charged in full even if it had a limit while blocked`() = runTest {
+        val repo = ScreenTimeRepository(
+            MapScreenTimeDao(),
+            StubTracker(listOf(AppUsage("com.insta", 50 * 60_000L))),
+            dailyBudgetMs = budget,
+        )
+        // tick 1: blocked with a 30 min allowance -> 20 min overage charged
+        val blockedSaved = repo.fetchAndPersistToday(
+            setOf("com.insta"),
+            startOfDayMs = 0L,
+            allowances = mapOf("com.insta" to 30 * 60_000L),
+        )
+        assertEquals(budget - 20 * 60_000L, blockedSaved)
+        // tick 2: unblocked -> allowance is gone -> all 50 min counts
+        val unblockedSaved = repo.fetchAndPersistToday(emptySet(), startOfDayMs = 0L)
+        assertEquals(budget - 50 * 60_000L, unblockedSaved)
     }
 }

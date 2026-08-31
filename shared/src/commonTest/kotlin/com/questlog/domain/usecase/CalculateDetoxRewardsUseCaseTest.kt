@@ -48,6 +48,8 @@ class FakeScreenTimeDao : ScreenTimeDao {
         MutableStateFlow(records.filter { it.date >= fromDate })
     override suspend fun totalForegroundMsForDate(date: String): Long =
         records.filter { it.date == date }.sumOf { it.foregroundMs }
+    override suspend fun packagesForDate(date: String): List<String> =
+        records.filter { it.date == date }.map { it.packageName }.distinct()
     override suspend fun foregroundMsForPackageOnDate(packageName: String, date: String): Long =
         records.filter { it.date == date && it.packageName == packageName }.sumOf { it.foregroundMs }
 }
@@ -266,6 +268,41 @@ class CalculateDetoxRewardsUseCaseTest {
         // reaching fetchAndPersistToday, which must spare exactly the 10 min of usage.
         assertTrue(savedGenerous > savedBlocked, "a bigger limit must keep more saved time")
         assertEquals(10 * 60_000L, savedGenerous - savedBlocked)
+    }
+
+    @Test
+    fun `unblocking an app mid-day grants no extra reward`() = runTest {
+        val tz = TimeZone.currentSystemDefault()
+        val noon = Clock.System.now().toLocalDateTime(tz).date.atTime(12, 0).toInstant(tz)
+        val currencyDao = FakeCurrencyDao()
+        val currencyRepo = CurrencyRepository(currencyDao)
+        val screenTimeRepo = ScreenTimeRepository(
+            FakeScreenTimeDao(),
+            object : ScreenTimeTracker() {
+                // The user racked up 40 min on a distraction app.
+                override suspend fun getUsageForPeriod(startMs: Long, endMs: Long) =
+                    listOf(AppUsage("com.insta", 40 * 60_000L))
+                override fun isPermissionGranted() = true
+            },
+        )
+
+        // Tick 1: com.insta is blocked -> 40 min already cost the player.
+        val blocked = CalculateDetoxRewardsUseCase(
+            screenTimeRepo, currencyRepo, { listOf(BlockedApp("com.insta", 0L)) },
+            clock = PinnedClock(noon),
+        )()
+        val goldAfterBlocked = currencyDao.balance.gold
+
+        // Tick 2: the player unblocks everything, hoping to farm the reward back.
+        val farmed = CalculateDetoxRewardsUseCase(
+            screenTimeRepo, currencyRepo, { emptyList() },
+            clock = PinnedClock(noon),
+        )()
+
+        assertEquals(0L, farmed.xpEarned, "unblocking grants no XP delta")
+        assertEquals(0L, farmed.goldEarned, "unblocking grants no gold delta")
+        assertEquals(goldAfterBlocked, currencyDao.balance.gold, "gold is unchanged")
+        assertEquals(blocked.timeSavedMs, farmed.timeSavedMs, "saved time does not jump")
     }
 
     private fun useCaseFor(

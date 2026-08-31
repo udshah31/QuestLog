@@ -47,4 +47,19 @@ class ScreenTimeDaoTest {
         assertEquals(2, dao.getByDate("2026-08-27").first().size)
         assertEquals(1, dao.getByDate("2026-08-28").first().size)
     }
+
+    @Test
+    fun `packagesForDate lists the distinct apps tracked on that day`() = runTest {
+        dao.upsert(ScreenTimeRecord("com.instagram.android", "2026-08-27", 1))
+        dao.upsert(ScreenTimeRecord("com.snapchat.android", "2026-08-27", 1))
+        dao.upsert(ScreenTimeRecord("com.instagram.android", "2026-08-27", 2)) // same app, replaces
+        dao.upsert(ScreenTimeRecord("com.reddit.frontpage", "2026-08-28", 1))
+
+        assertEquals(
+            listOf("com.instagram.android", "com.snapchat.android"),
+            dao.packagesForDate("2026-08-27").sorted(),
+        )
+        assertEquals(listOf("com.reddit.frontpage"), dao.packagesForDate("2026-08-28"))
+        assertEquals(emptyList(), dao.packagesForDate("2026-08-29"))
+    }
 }
