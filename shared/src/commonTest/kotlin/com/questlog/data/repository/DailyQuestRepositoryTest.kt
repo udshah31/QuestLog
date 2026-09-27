@@ -31,6 +31,7 @@ private class FakeQuestDao(completed: List<String> = emptyList()) : QuestDao {
     override suspend fun insertIfAbsent(completion: QuestCompletion): Long = 1L
     override fun observeCompletedIds(date: String): Flow<List<String>> = flow
     override suspend fun completedIds(date: String): List<String> = flow.value
+    override fun observeLifetimeCompletedCount(): Flow<Int> = MutableStateFlow(0)
 }
 
 class DailyQuestRepositoryTest {

@@ -18,4 +18,7 @@ interface QuestDao {
 
     @Query("SELECT questId FROM quest_completions WHERE date = :date")
     suspend fun completedIds(date: String): List<String>
+
+    @Query("SELECT COUNT(*) FROM quest_completions")
+    fun observeLifetimeCompletedCount(): Flow<Int>
 }

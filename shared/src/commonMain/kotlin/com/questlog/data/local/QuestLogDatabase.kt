@@ -17,6 +17,8 @@ import com.questlog.data.local.entity.InventoryItem
 import com.questlog.data.local.entity.QuestCompletion
 import com.questlog.data.local.entity.ScreenTimeRecord
 import com.questlog.data.local.entity.MindfulUnlockEntity
+import com.questlog.data.local.entity.DailySaved
+import com.questlog.data.local.dao.DailySavedDao
 import com.questlog.data.local.dao.MindfulUnlockDao
 
 @Database(
@@ -27,8 +29,9 @@ import com.questlog.data.local.dao.MindfulUnlockDao
         QuestCompletion::class,
         BlockedAppEntity::class,
         MindfulUnlockEntity::class,
+        DailySaved::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 @ConstructedBy(QuestLogDatabaseConstructor::class)
@@ -40,6 +43,7 @@ abstract class QuestLogDatabase : RoomDatabase() {
     abstract fun questDao(): QuestDao
     abstract fun blocklistDao(): BlocklistDao
     abstract fun mindfulUnlockDao(): MindfulUnlockDao
+    abstract fun dailySavedDao(): DailySavedDao
 
     companion object {
         const val DB_NAME = "questlog.db"

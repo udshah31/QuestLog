@@ -24,12 +24,13 @@ See `README.md` for architecture.
 
 ## Testing patterns
 
-- Use-case / repo tests use hand-written fake DAOs that model real Room semantics (e.g. `UPDATE ... WHERE id = 1` is a no-op when the row is absent). Adding a `@Dao` method means updating every fake: `FakeScreenTimeDao` in `CalculateDetoxRewardsUseCaseTest` (shared; also used by `EvaluateDailyQuestsUseCaseTest`), the fakes in `ScreenTimeRepositoryTest`, and `app`'s `DashboardViewModelTest`. `MindfulUnlockDao` has fakes in `MindfulUnlockRepositoryTest` (shared) and `UnlockViewModelTest` (app).
+- Use-case / repo tests use hand-written fake DAOs that model real Room semantics (e.g. `UPDATE ... WHERE id = 1` is a no-op when the row is absent). Adding a `@Dao` method means updating every fake: `FakeScreenTimeDao` in `CalculateDetoxRewardsUseCaseTest` (shared; also used by `EvaluateDailyQuestsUseCaseTest`), the fakes in `ScreenTimeRepositoryTest`, and `app`'s `DashboardViewModelTest`. `MindfulUnlockDao` has fakes in `MindfulUnlockRepositoryTest` (shared) and `UnlockViewModelTest` (app). Adding a `QuestDao` method means updating `FakeQuestDao` in `DailyQuestRepositoryTest`, `EvaluateDailyQuestsUseCaseTest` and `DashboardViewModelTest`. `DailySavedDao` has fakes in `GetProgressStatsUseCaseTest` (`HistoryDao`) and `ProgressViewModelTest` (`NoHistory`).
 - Real Room DB tests run on `desktop`: `Room.inMemoryDatabaseBuilder<QuestLogDatabase>().setDriver(BundledSQLiteDriver())` (needs `@ConstructedBy` on `@Database`, already present).
 - Migration tests: `MigrationTestHelper` as a plain JVM test in `desktopTest`; schema dir is passed via the `questlog.schemasDir` system property set in `shared/build.gradle.kts`.
 - `ScreenTimeRepository`, `DetoxMonitorFlow`, and `ScreenTimeTracker` (`expect` + both `actual`s) are `open` so tests can stub them; `app`'s `BillingManager` is `open` too (`FakeBilling` in `DashboardViewModelTest` scripts offers and purchase callbacks) — a real `DetoxMonitorFlow` in a `runTest` + `advanceUntilIdle()` hangs (infinite `while(true){ delay() }`).
 - `app` ViewModel tests: `@OptIn(ExperimentalCoroutinesApi::class)` on the class + `Dispatchers.setMain(StandardTestDispatcher())` before `runTest` (see `DashboardViewModelTest`, `BlocklistViewModelTest`).
 - Daily quests rotate: 3 of an 8-quest pool are active per day via `questsForDay(date)` (sliding window, `epochDays mod 8`). Quest tests derive the test date from the window they need (`dateWithWindow(...)` helper in `EvaluateDailyQuestsUseCaseTest`) rather than hardcoding one. `DailyQuestRepository` takes an injectable `clock`/`timeZone`.
+- `GetProgressStatsUseCase`'s default `dates` is a real midnight ticker (`localDates`): tests pass `dates = flowOf(day)` or a `MutableStateFlow`, or `advanceUntilIdle()` loops on its `delay`. A collector in `backgroundScope` needs `runCurrent()` — `advanceUntilIdle()` stops once only background work is left.
 - `BlocklistDaoTest` builds the in-memory DB with `.addCallback(questLogSeedCallback)` to exercise the fresh-install seed.
 - `app/src/androidTest` (instrumented, not in CI): use `org.junit.Assert` (`kotlin.test` isn't on that classpath); keep them compiling with `./gradlew :app:compileDebugAndroidTestKotlin`.
 - Theme token edits (`theme/QuestColors.kt`) must keep `ContrastTest` green — it asserts `inkSecondary/inkMuted/earned/currency` clear 4.5:1 on `ground` and `surface` for both colour sets; `earned` `#D72323` on paper is the tight one (~4.6:1).
@@ -60,3 +61,9 @@ See `README.md` for architecture.
   `graceToday()` to each app's allowance; the streak reads raw totals and never sees it.
   The typed reason is never persisted. `proxy/` is a Cloudflare Worker, not in Android CI
   (`cd proxy && npm test`).
+- `daily_saved` gets one row per *finished* day, written in `CalculateDetoxRewardsUseCase`'s
+  rollover branch (even a 0 day); today is never stored — `GetProgressStatsUseCase` uses the
+  live `PlayerStats.todaySavedMs` for today's bar and "best day" (best day reads only rows *before* today).
+  `PlayerStats.todaySavedMs` is 0 unless `currency_balance.rewardDate` is today — yesterday's award
+  isn't today's until the rollover tick; `CurrencyRepository` takes an injectable `clock`/`timeZone`. `shared` exposes
+  `kotlinx-datetime` as `api` because `ProgressStats` carries `LocalDate`.

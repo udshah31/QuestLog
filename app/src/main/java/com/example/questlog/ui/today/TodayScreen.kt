@@ -37,6 +37,7 @@ fun TodayScreen(
     onOpenRealm: () -> Unit,
     onOpenBlocklist: () -> Unit,
     onOpenUnlock: () -> Unit,
+    onOpenProgress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val c = QuestLogTheme.colors
@@ -89,7 +90,7 @@ fun TodayScreen(
             verticalArrangement = Arrangement.spacedBy(QuestSpacing.lg),
         ) {
             Hairline()
-            TodayHero(state.stats)
+            TodayHero(state.stats, onOpenProgress)
             if (state.isPremium) {
                 Text(
                     if (state.stats.streakFreezeReady) "Shield ready" else "Shield recharging",
@@ -137,7 +138,7 @@ private fun TodayPreview() {
     QuestLogTheme {
         TodayScreen(
             state = previewState(isPremium = false),
-            onRefresh = {}, onOpenPaywall = {}, onOpenRealm = {}, onOpenBlocklist = {}, onOpenUnlock = {},
+            onRefresh = {}, onOpenPaywall = {}, onOpenRealm = {}, onOpenBlocklist = {}, onOpenUnlock = {}, onOpenProgress = {},
         )
     }
 }
@@ -148,7 +149,7 @@ private fun TodayPremiumPreview() {
     QuestLogTheme {
         TodayScreen(
             state = previewState(isPremium = true),
-            onRefresh = {}, onOpenPaywall = {}, onOpenRealm = {}, onOpenBlocklist = {}, onOpenUnlock = {},
+            onRefresh = {}, onOpenPaywall = {}, onOpenRealm = {}, onOpenBlocklist = {}, onOpenUnlock = {}, onOpenProgress = {},
         )
     }
 }

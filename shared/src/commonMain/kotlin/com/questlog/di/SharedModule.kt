@@ -2,6 +2,7 @@ package com.questlog.di
 
 import com.questlog.data.repository.BlocklistRepository
 import com.questlog.data.repository.CurrencyRepository
+import com.questlog.data.repository.DailySavedRepository
 import com.questlog.data.repository.DailyQuestRepository
 import com.questlog.data.repository.InventoryRepository
 import com.questlog.data.repository.MindfulUnlockRepository
@@ -11,6 +12,7 @@ import com.questlog.domain.usecase.CalculateDetoxRewardsUseCase
 import com.questlog.domain.usecase.DetoxMonitorFlow
 import com.questlog.domain.usecase.EvaluateDailyQuestsUseCase
 import com.questlog.domain.usecase.GetDashboardStatsUseCase
+import com.questlog.domain.usecase.GetProgressStatsUseCase
 import com.questlog.domain.usecase.PurchaseBuildingUseCase
 import org.koin.dsl.module
 
@@ -22,6 +24,7 @@ val sharedModule = module {
     single { DailyQuestRepository(get()) }
     single { BlocklistRepository(get()) }
     single { MindfulUnlockRepository(get()) }
+    single { DailySavedRepository(get()) }
 
     // Use cases
     factory {
@@ -42,6 +45,7 @@ val sharedModule = module {
             evaluateDailyQuests = { quests() },
             isPremium = { getOrNull<PremiumStatusProvider>()?.isPremium() ?: false },
             graceToday = { get<MindfulUnlockRepository>().graceMsToday() },
+            recordDailySaved = { date, ms -> get<DailySavedRepository>().record(date, ms) },
         )
     }
     factory {
@@ -50,4 +54,9 @@ val sharedModule = module {
     }
     factory { GetDashboardStatsUseCase(currencyRepo = get(), inventoryRepo = get(), blocklistRepo = get()) }
     factory { PurchaseBuildingUseCase(currencyRepo = get(), inventoryRepo = get()) }
+    factory {
+        GetProgressStatsUseCase(
+            currencyRepo = get(), dailySavedRepo = get(), questDao = get(), blocklistRepo = get(),
+        )
+    }
 }

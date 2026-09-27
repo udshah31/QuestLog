@@ -2,6 +2,8 @@ package com.example.questlog.ui
 
 import android.app.Activity
 import com.example.questlog.ui.unlock.UnlockViewModel
+import com.example.questlog.ui.progress.ProgressScreen
+import com.example.questlog.ui.progress.ProgressViewModel
 import com.example.questlog.unlock.launchApp
 import com.example.questlog.ui.unlock.UnlockScreen
 import com.example.questlog.ui.unlock.UnlockIntent
@@ -54,7 +56,7 @@ import com.example.questlog.ui.realm.RealmScreen
 import com.example.questlog.ui.today.TodayScreen
 import org.koin.compose.viewmodel.koinViewModel
 
-private enum class Screen { Today, Realm, Blocklist, Unlock }
+private enum class Screen { Today, Realm, Blocklist, Unlock, Progress }
 
 @Composable
 fun QuestLogRoot(viewModel: DashboardViewModel) {
@@ -105,6 +107,7 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
                         onOpenBlocklist = { screen = Screen.Blocklist },
                         // Reset on navigation, not on composition: a rotation must keep the typed reason.
                         onOpenUnlock = { unlockVm.onIntent(UnlockIntent.Reset); screen = Screen.Unlock },
+                        onOpenProgress = { screen = Screen.Progress },
                     )
                     Screen.Realm -> RealmScreen(
                         tiles = state.cityTiles,
@@ -152,6 +155,11 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
                             onIntent = unlockVm::onIntent,
                             onBack = { screen = Screen.Today },
                         )
+                    }
+                    Screen.Progress -> {
+                        val progressVm = koinViewModel<ProgressViewModel>()
+                        val progressState by progressVm.uiState.collectAsState()
+                        ProgressScreen(state = progressState, onBack = { screen = Screen.Today })
                     }
                 }
             }

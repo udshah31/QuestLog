@@ -123,6 +123,21 @@ class ScreenTimeMigrationTest {
     }
 
     @Test
+    fun `10 to 11 creates daily_saved keyed by date`() = runTest {
+        helper.createDatabase(10).close()
+
+        val v11 = helper.runMigrationsAndValidate(11, listOf(MIGRATION_10_11))
+
+        v11.execSQL("INSERT INTO daily_saved (date, savedMs) VALUES ('2026-09-20', 600000)")
+        val duplicate = runCatching {
+            v11.execSQL("INSERT INTO daily_saved (date, savedMs) VALUES ('2026-09-20', 1)")
+        }
+        assertTrue(duplicate.isFailure, "date is the primary key")
+        assertEquals(600_000L, v11.queryLongs("SELECT savedMs FROM daily_saved").single().single())
+        v11.close()
+    }
+
+    @Test
     fun `9 to 10 creates mindful_unlock`() = runTest {
         helper.createDatabase(9).close()
 
