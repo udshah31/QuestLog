@@ -56,6 +56,15 @@ internal fun paywallButton(
     else -> PaywallButton("Pro unavailable right now", PaywallAction.None)
 }
 
+/** Sub-line under the headline. Any trial states its after-trial price (Play subscriptions policy). */
+internal fun paywallSubline(reason: PaywallReason, priceText: String?, trialText: String?): String? = when {
+    priceText == null -> null
+    trialText != null && reason == PaywallReason.Milestone -> "Your realm earned a trial: $trialText, then $priceText."
+    trialText != null -> "$trialText, then $priceText."
+    reason == PaywallReason.Milestone -> "Keep the whole realm: $priceText."
+    else -> null // manual, no trial: the price is on the button
+}
+
 @Composable
 fun PaywallScreen(
     reason: PaywallReason,
@@ -103,10 +112,9 @@ fun PaywallScreen(
                     style = QuestType.heroLine,
                     color = c.inkPrimary,
                 )
-                if (milestone && priceText != null) {
+                paywallSubline(reason, priceText, trialText)?.let { subline ->
                     Text(
-                        if (trialText != null) "Your realm earned a trial: $trialText, then $priceText."
-                        else "Keep the whole realm: $priceText.",
+                        subline,
                         style = QuestType.bodyLarge,
                         color = c.inkSecondary,
                     )

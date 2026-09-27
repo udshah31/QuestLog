@@ -202,11 +202,14 @@ class DashboardViewModel(
         if (streak < MILESTONE_DAYS || isPremium || !entitlementsKnown) return
         // Don't hijack a paywall the player opened themselves; try again on a later emission.
         if (_uiState.value.showPaywall || milestoneStore.shown) return
-        milestoneStore.markShown()
-        openPaywall(PaywallReason.Milestone)
+        openPaywall(PaywallReason.Milestone) // marks the milestone shown
     }
 
     private fun openPaywall(reason: PaywallReason) {
+        // Seeing any paywall at 7+ days consumes the milestone — no second one after "Maybe later".
+        if (_uiState.value.stats.consecutiveDetoxDays >= MILESTONE_DAYS && !milestoneStore.shown) {
+            milestoneStore.markShown()
+        }
         _uiState.update { it.copy(showPaywall = true, paywallReason = reason, offerLoading = true) }
         viewModelScope.launch {
             val offer = billingManager.loadProOffer()

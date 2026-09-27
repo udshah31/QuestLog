@@ -90,7 +90,8 @@ val purchasing: Boolean = false,
   - Marked on *show*, not on dismiss — a crash or back-press never re-nags.
   - Also requires `BillingManager.entitlementsKnown` (CustomerInfo arrived), so a Pro user
     on a cold start isn't shown a trial.
-  - Skipped while a paywall is already open (manual); retried on a later emission.
+  - Skipped while a paywall is already open (manual). Opening *any* paywall at 7+ days
+    marks the milestone shown, so "Maybe later" on a manual one is never followed by it.
   - The check lives in the collector, which only runs with real stats — never the default
     zero state.
 - **Opening the paywall** (both reasons) launches `loadProOffer()` and stores the result in
@@ -117,7 +118,7 @@ New params: `reason: PaywallReason`, `priceText: String?`, `trialText: String?`,
 |---|---|---|
 | Milestone, trial | "7-day streak" / "Seven days kept." | "Your realm earned a trial: {trialText}, then {priceText}." |
 | Milestone, no trial | "7-day streak" / "Seven days kept." | "Keep the whole realm: {priceText}." |
-| Manual | unchanged ("Architect of the High Realm" / "Keep the whole realm, not half of it.") | — |
+| Manual | unchanged ("Architect of the High Realm" / "Keep the whole realm, not half of it.") | trial: "{trialText}, then {priceText}." (Play policy: state the after-trial price); no trial: — |
 
 Button:
 

@@ -336,7 +336,7 @@ class DashboardViewModelTest {
     }
 
     @Test
-    fun `manual paywall is not hijacked and does not burn the milestone`() = runTest {
+    fun `manual paywall is not hijacked by the milestone`() = runTest {
         val billing = BillingManager()
         val store = FakeMilestoneStore()
         val vm = milestoneVm(streak = 7, billing = billing, store = store)
@@ -345,7 +345,21 @@ class DashboardViewModelTest {
         billing.setDebugPremium(false)
         advanceUntilIdle()
         assertEquals(PaywallReason.Manual, vm.uiState.value.paywallReason)
-        assertEquals(0, store.markCount)
+    }
+
+    @Test
+    fun `dismissing a manual paywall at seven days does not bring the milestone one back`() = runTest {
+        val billing = BillingManager()
+        val store = FakeMilestoneStore()
+        val vm = milestoneVm(streak = 7, billing = billing, store = store)
+        advanceUntilIdle()
+        vm.onIntent(DashboardIntent.OpenPaywall)
+        advanceUntilIdle()
+        vm.onIntent(DashboardIntent.DismissPaywall)
+        billing.setDebugPremium(false) // entitlements arrive after the dismiss
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.showPaywall)
+        assertEquals(1, store.markCount)
     }
 
     @Test
