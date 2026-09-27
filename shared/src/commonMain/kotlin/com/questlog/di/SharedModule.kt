@@ -12,6 +12,7 @@ import com.questlog.domain.usecase.CalculateDetoxRewardsUseCase
 import com.questlog.domain.usecase.DetoxMonitorFlow
 import com.questlog.domain.usecase.EvaluateDailyQuestsUseCase
 import com.questlog.domain.usecase.GetDashboardStatsUseCase
+import com.questlog.domain.usecase.GetProgressStatsUseCase
 import com.questlog.domain.usecase.PurchaseBuildingUseCase
 import org.koin.dsl.module
 
@@ -53,4 +54,9 @@ val sharedModule = module {
     }
     factory { GetDashboardStatsUseCase(currencyRepo = get(), inventoryRepo = get(), blocklistRepo = get()) }
     factory { PurchaseBuildingUseCase(currencyRepo = get(), inventoryRepo = get()) }
+    factory {
+        GetProgressStatsUseCase(
+            currencyRepo = get(), dailySavedRepo = get(), questDao = get(), blocklistRepo = get(),
+        )
+    }
 }

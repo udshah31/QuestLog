@@ -131,6 +131,7 @@ class FakeQuestDao : QuestDao {
     }
     override fun observeCompletedIds(date: String): Flow<List<String>> = flow
     override suspend fun completedIds(date: String): List<String> = completed.toList()
+    override fun observeLifetimeCompletedCount(): Flow<Int> = MutableStateFlow(0)
 }
 
 class FakeBlocklistDao : com.questlog.data.local.dao.BlocklistDao {
