@@ -1,6 +1,12 @@
 package com.example.questlog.ui
 
 import android.app.Activity
+import com.example.questlog.ui.unlock.UnlockViewModel
+import com.example.questlog.ui.unlock.UnlockScreen
+import com.example.questlog.ui.unlock.UnlockIntent
+import com.example.questlog.ui.unlock.UnlockEvent
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
@@ -47,7 +53,7 @@ import com.example.questlog.ui.realm.RealmScreen
 import com.example.questlog.ui.today.TodayScreen
 import org.koin.compose.viewmodel.koinViewModel
 
-private enum class Screen { Today, Realm, Blocklist }
+private enum class Screen { Today, Realm, Blocklist, Unlock }
 
 @Composable
 fun QuestLogRoot(viewModel: DashboardViewModel) {
@@ -95,6 +101,7 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
                         onOpenPaywall = { viewModel.onIntent(DashboardIntent.OpenPaywall) },
                         onOpenRealm = { screen = Screen.Realm },
                         onOpenBlocklist = { screen = Screen.Blocklist },
+                        onOpenUnlock = { screen = Screen.Unlock },
                     )
                     Screen.Realm -> RealmScreen(
                         tiles = state.cityTiles,
@@ -120,6 +127,35 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
                                     context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                                 }
                             },
+                        )
+                    }
+                    Screen.Unlock -> {
+                        val unlockVm = koinViewModel<UnlockViewModel>()
+                        val unlockState by unlockVm.uiState.collectAsState()
+                        val context = LocalContext.current
+                        val scope = rememberCoroutineScope()
+                        LaunchedEffect(Unit) { unlockVm.onIntent(UnlockIntent.Reset) }
+                        LaunchedEffect(unlockVm) {
+                            unlockVm.events.collect { e ->
+                                when (e) {
+                                    is UnlockEvent.Launch -> {
+                                        val launch = context.packageManager.getLaunchIntentForPackage(e.packageName)
+                                        if (launch != null) {
+                                            context.startActivity(launch)
+                                            screen = Screen.Today
+                                        } else {
+                                            scope.launch { snackbarHostState.showSnackbar("Can't open that app.") }
+                                        }
+                                    }
+                                    UnlockEvent.OpenPaywall -> viewModel.onIntent(DashboardIntent.OpenPaywall)
+                                    UnlockEvent.Close -> screen = Screen.Today
+                                }
+                            }
+                        }
+                        UnlockScreen(
+                            state = unlockState,
+                            onIntent = unlockVm::onIntent,
+                            onBack = { screen = Screen.Today },
                         )
                     }
                 }

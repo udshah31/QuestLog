@@ -36,6 +36,7 @@ fun TodayScreen(
     onOpenPaywall: () -> Unit,
     onOpenRealm: () -> Unit,
     onOpenBlocklist: () -> Unit,
+    onOpenUnlock: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val c = QuestLogTheme.colors
@@ -108,6 +109,8 @@ fun TodayScreen(
             Hairline()
             QuestLedger(state.dailyQuests)
             Hairline()
+            MindfulUnlockRow(onOpen = onOpenUnlock)
+            Hairline()
             RealmStrip(state.cityTiles, onOpen = onOpenRealm)
             Spacer(Modifier.height(QuestSpacing.xxl))
         }
@@ -134,7 +137,7 @@ private fun TodayPreview() {
     QuestLogTheme {
         TodayScreen(
             state = previewState(isPremium = false),
-            onRefresh = {}, onOpenPaywall = {}, onOpenRealm = {}, onOpenBlocklist = {},
+            onRefresh = {}, onOpenPaywall = {}, onOpenRealm = {}, onOpenBlocklist = {}, onOpenUnlock = {},
         )
     }
 }
@@ -145,7 +148,7 @@ private fun TodayPremiumPreview() {
     QuestLogTheme {
         TodayScreen(
             state = previewState(isPremium = true),
-            onRefresh = {}, onOpenPaywall = {}, onOpenRealm = {}, onOpenBlocklist = {},
+            onRefresh = {}, onOpenPaywall = {}, onOpenRealm = {}, onOpenBlocklist = {}, onOpenUnlock = {},
         )
     }
 }

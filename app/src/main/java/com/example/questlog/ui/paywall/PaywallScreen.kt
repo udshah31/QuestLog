@@ -38,6 +38,7 @@ private val PRO_PERKS = listOf(
     Perk("×2", "Double rewards", "Every minute of focus time pays twice the XP and gold"),
     Perk("◇", "Streak Freeze", "Protects your streak through one missed day a week"),
     Perk("▢", "Two realm buildings", "Crystal Castle and Aurora Fountain"),
+    Perk("✦", "Mindful Unlocks", "Say why, get 5 minutes free — as often as you like"),
 )
 
 internal enum class PaywallAction { Buy, Demo, None }
