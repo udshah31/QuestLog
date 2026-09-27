@@ -24,7 +24,9 @@ QuestLog
 
 The `app` UI is two screens — **Today** (streak ring, level, quest ledger, realm
 summary) and **Realm** (the build grid) — plus **Distractions** (the blocklist editor,
-reached from the Today gear), **Unlock** ("Open an app mindfully", reached from Today) and
+reached from the Today gear), **Unlock** ("Open an app mindfully", reached from Today), **Progress** (tap the streak
+ring on Today: all-time reclaimed, streak / best day / apps guarded / quests cleared, the
+level track and a 7-day chart) and
 the Pro paywall screen, hosted by `ui/QuestLogRoot.kt`
 with no navigation library. A `QuestColors` token system drives a `QuestLogTheme` with a
 single charcoal-on-paper palette and one red accent ("Palette #1"); the light/dark
@@ -127,7 +129,7 @@ are keyed by date).
 
 ## Persistence
 
-One SQLite database, `questlog.db` (schema **v10**, migrations `1→…→10` in
+One SQLite database, `questlog.db` (schema **v11**, migrations `1→…→11` in
 `data/local/QuestLogMigrations.kt`, wired by `DatabaseFactory` in `androidMain`).
 
 | Table | Key | Holds |
@@ -138,6 +140,7 @@ One SQLite database, `questlog.db` (schema **v10**, migrations `1→…→10` in
 | `quest_completions` | `(date, questId)` | `completedAt` — a row means the quest was completed and rewarded that day |
 | `blocked_app` | `packageName` | `dailyLimitMs` — the user's distraction list (row = blocked) |
 | `mindful_unlock` | `id` | `date`, `packageName`, `category`, `purposeful`, `graceMs`, `createdAt` — one row per judged Mindful Unlock; no reason text |
+| `daily_saved` | `date` | `savedMs` — each finished day's reclaimed time, written on rollover (no backfill) |
 
 Exported schemas live in `shared/schemas/` and are used for migration diffing and by the
 `MigrationTestHelper` tests.
