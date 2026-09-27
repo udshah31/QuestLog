@@ -3,6 +3,7 @@ package com.example.questlog
 import android.app.Application
 import android.content.Context
 import com.example.questlog.billing.BillingManager
+import com.example.questlog.ui.progress.ProgressViewModel
 import com.example.questlog.ui.unlock.UnlockViewModel
 import com.example.questlog.unlock.InstallId
 import com.example.questlog.unlock.IntentJudge
@@ -39,6 +40,7 @@ val appModule = module {
             isPremium = { get<BillingManager>().isProOrUnknown() },
         )
     }
+    viewModel { ProgressViewModel(get()) }
     viewModel { DashboardViewModel(get(), get(), get(), get(), get(), get(), get()) }
     viewModel {
         com.example.questlog.ui.blocklist.BlocklistViewModel(

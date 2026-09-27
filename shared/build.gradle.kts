@@ -29,7 +29,7 @@ kotlin {
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.datetime)
+            api(libs.kotlinx.datetime) // api: ProgressStats exposes LocalDate to app
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.core)
         }
