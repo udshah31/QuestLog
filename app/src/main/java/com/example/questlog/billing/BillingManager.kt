@@ -69,9 +69,15 @@ class BillingManager {
             val product = pkg.product
             val price = product.price.formatted
             val period = product.period?.let { periodLabel(it.value, it.unit) }
-            val trial = product.defaultOption?.freePhase?.billingPeriod
-                ?.let { trialLabel(it.value, it.unit) }
-            ProOffer(pkg, if (period != null) "$price / $period" else price, trial)
+            val option = product.defaultOption
+            val trial = option?.freePhase?.billingPeriod?.let { trialLabel(it.value, it.unit) }
+            // A paid intro phase is what the default option actually charges first — show it.
+            val intro = option?.introPhase?.let { phase ->
+                val cycles = phase.billingCycleCount ?: 1
+                lengthLabel(phase.billingPeriod.value * cycles, phase.billingPeriod.unit)
+                    ?.let { phase.price.formatted to it }
+            }
+            ProOffer(pkg, priceLine(price, period, intro), trial)
         }
     } catch (e: CancellationException) {
         throw e

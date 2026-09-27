@@ -28,4 +28,20 @@ class OfferTextTest {
         assertNull(periodLabel(1, Period.Unit.UNKNOWN))
         assertNull(trialLabel(7, Period.Unit.UNKNOWN))
     }
+
+    @Test fun `price line without an intro phase`() {
+        assertEquals("$4.99 / month", priceLine("$4.99", "month", intro = null))
+        assertEquals("$19.99", priceLine("$19.99", null, intro = null))
+    }
+
+    @Test fun `paid intro phase is shown before the full price`() = assertEquals(
+        "$0.99 for 3 months, then $4.99 / month",
+        priceLine("$4.99", "month", intro = "$0.99" to "3 months"),
+    )
+
+    @Test fun `length label counts the whole intro`() {
+        assertEquals("1 month", lengthLabel(1, Period.Unit.MONTH))
+        assertEquals("3 months", lengthLabel(3, Period.Unit.MONTH))
+        assertNull(lengthLabel(1, Period.Unit.UNKNOWN))
+    }
 }
