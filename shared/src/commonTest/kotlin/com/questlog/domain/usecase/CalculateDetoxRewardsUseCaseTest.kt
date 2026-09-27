@@ -552,4 +552,34 @@ class CalculateDetoxRewardsUseCaseTest {
             savedAfterUnblock(mapOf("com.insta" to 5 * 60_000L)) - savedAfterUnblock(emptyMap()),
         )
     }
+
+    @Test
+    fun `rollover records the finished day once, even a zero day`() = runTest {
+        for (finished in listOf(40 * 60_000L, 0L)) {
+            val currencyDao = FakeCurrencyDao().apply {
+                balance = balance.copy(rewardDate = daysAgoKey(1), awardedSavedMsToday = finished)
+            }
+            val recorded = mutableListOf<Pair<String, Long>>()
+            val useCase = CalculateDetoxRewardsUseCase(
+                StubScreenTimeRepo(savedMs = 10 * 60_000L), CurrencyRepository(currencyDao),
+                blocked("com.instagram.android"),
+                recordDailySaved = { d, ms -> recorded += d to ms },
+            )
+
+            useCase(); useCase() // second run is the same day: no rollover
+
+            assertEquals(listOf(daysAgoKey(1) to finished), recorded)
+        }
+    }
+
+    @Test
+    fun `no rollover on the very first run records nothing`() = runTest {
+        val recorded = mutableListOf<Pair<String, Long>>()
+        CalculateDetoxRewardsUseCase(
+            StubScreenTimeRepo(savedMs = 10 * 60_000L), CurrencyRepository(FakeCurrencyDao()),
+            blocked("com.instagram.android"),
+            recordDailySaved = { d, ms -> recorded += d to ms },
+        )()
+        assertEquals(emptyList(), recorded)
+    }
 }

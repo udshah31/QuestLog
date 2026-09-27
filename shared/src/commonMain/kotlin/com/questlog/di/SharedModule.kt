@@ -2,6 +2,7 @@ package com.questlog.di
 
 import com.questlog.data.repository.BlocklistRepository
 import com.questlog.data.repository.CurrencyRepository
+import com.questlog.data.repository.DailySavedRepository
 import com.questlog.data.repository.DailyQuestRepository
 import com.questlog.data.repository.InventoryRepository
 import com.questlog.data.repository.MindfulUnlockRepository
@@ -22,6 +23,7 @@ val sharedModule = module {
     single { DailyQuestRepository(get()) }
     single { BlocklistRepository(get()) }
     single { MindfulUnlockRepository(get()) }
+    single { DailySavedRepository(get()) }
 
     // Use cases
     factory {
@@ -42,6 +44,7 @@ val sharedModule = module {
             evaluateDailyQuests = { quests() },
             isPremium = { getOrNull<PremiumStatusProvider>()?.isPremium() ?: false },
             graceToday = { get<MindfulUnlockRepository>().graceMsToday() },
+            recordDailySaved = { date, ms -> get<DailySavedRepository>().record(date, ms) },
         )
     }
     factory {

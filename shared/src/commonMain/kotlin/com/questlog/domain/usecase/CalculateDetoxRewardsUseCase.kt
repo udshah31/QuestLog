@@ -39,6 +39,8 @@ class CalculateDetoxRewardsUseCase(
     private val isPremium: () -> Boolean = { false },
     /** Today's Mindful Unlock grace per package; added to that app's daily limit for the reward only. */
     private val graceToday: suspend () -> Map<String, Long> = { emptyMap() },
+    /** Called once per rollover with the finished day and its final saved time (Progress history). */
+    private val recordDailySaved: suspend (date: String, savedMs: Long) -> Unit = { _, _ -> },
     private val clock: Clock = Clock.System,
 ) {
     suspend operator fun invoke(): DetoxMetrics {
@@ -73,7 +75,9 @@ class CalculateDetoxRewardsUseCase(
         var streak = balance?.consecutiveDetoxDays ?: 0
         val lastDay = balance?.rewardDate
         if (!lastDay.isNullOrEmpty() && lastDay != todayKey) {
-            currencyRepo.addLifetimeSaved(balance?.awardedSavedMsToday ?: 0L)
+            val finishedDayMs = balance?.awardedSavedMsToday ?: 0L
+            currencyRepo.addLifetimeSaved(finishedDayMs)
+            recordDailySaved(lastDay, finishedDayMs) // records even a 0 day
             streak = evaluateStreak(lastDay, today, streak, balance, premium)
             currencyRepo.setStreak(streak)
         }
