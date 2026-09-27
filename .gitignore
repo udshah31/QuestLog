@@ -23,3 +23,7 @@ keystore.properties
 *.keystore
 *.jks
 .superpowers/
+
+# Mindful Unlocks proxy
+proxy/node_modules/
+proxy/.wrangler/

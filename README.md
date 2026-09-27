@@ -24,7 +24,8 @@ QuestLog
 
 The `app` UI is two screens — **Today** (streak ring, level, quest ledger, realm
 summary) and **Realm** (the build grid) — plus **Distractions** (the blocklist editor,
-reached from the Today gear) and the Pro paywall screen, hosted by `ui/QuestLogRoot.kt`
+reached from the Today gear), **Unlock** ("Open an app mindfully", reached from Today) and
+the Pro paywall screen, hosted by `ui/QuestLogRoot.kt`
 with no navigation library. A `QuestColors` token system drives a `QuestLogTheme` with a
 single charcoal-on-paper palette and one red accent ("Palette #1"); the light/dark
 plumbing is kept but both paths resolve to it. The *Instrument Serif* display face is
@@ -126,7 +127,7 @@ are keyed by date).
 
 ## Persistence
 
-One SQLite database, `questlog.db` (schema **v7**, migrations `1→…→7` in
+One SQLite database, `questlog.db` (schema **v10**, migrations `1→…→10` in
 `data/local/QuestLogMigrations.kt`, wired by `DatabaseFactory` in `androidMain`).
 
 | Table | Key | Holds |
@@ -135,6 +136,8 @@ One SQLite database, `questlog.db` (schema **v7**, migrations `1→…→7` in
 | `screen_time_records` | `(packageName, date)` | `foregroundMs` — one row per app per day |
 | `inventory_items` | `itemId` | `type`, `tier`, `isPremium`, `acquiredAt` |
 | `quest_completions` | `(date, questId)` | `completedAt` — a row means the quest was completed and rewarded that day |
+| `blocked_app` | `packageName` | `dailyLimitMs` — the user's distraction list (row = blocked) |
+| `mindful_unlock` | `id` | `date`, `packageName`, `category`, `purposeful`, `graceMs`, `createdAt` — one row per judged Mindful Unlock; no reason text |
 
 Exported schemas live in `shared/schemas/` and are used for migration diffing and by the
 `MigrationTestHelper` tests.
@@ -181,6 +184,13 @@ on push to `main` — see [Deploy](#deploy).
 - **Pro perks** (active while `BillingManager.isPremium`): a 2× multiplier on detox-time
   XP + gold (stacks with the streak multiplier), and a Streak Freeze Shield that protects
   one over-budget day per 7 days (`StreakFreeze.COOLDOWN_DAYS`).
+- **Mindful Unlocks**: the Unlock screen sends the player's typed reason to the Cloudflare
+  Worker in `proxy/` (TypeSafe key as the `TYPESAFE_API_KEY` Worker secret; `npm test`,
+  `npx wrangler deploy`). A purposeful answer (`MindfulUnlockRule`: Noul ≥ 0.7 and category
+  message/create/lookup/work) grants 5 min of grace, added to that app's allowance for today's
+  reward only (never the streak). Free: 1 judged unlock/day; Pro unlimited. The app reads the
+  Worker URL from `UNLOCK_PROXY_URL` (env / `keystore.properties` `unlockProxyUrl`); the
+  placeholder makes every check "Couldn't check right now".
 - **Pro paywall**: price and free-trial text come from the current RevenueCat Offering
   (`BillingManager.loadProOffer`, monthly package else first). The first time a free player's
   streak reaches 7 days the paywall opens once with trial copy (`MilestoneOfferStore`,
@@ -223,6 +233,7 @@ unsigned AAB and skips the upload.
    | `ANDROID_KEY_PASSWORD` | key password from step 1 |
    | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | contents of the step 2 JSON file |
    | `REVENUECAT_API_KEY` | RevenueCat Android SDK key |
+   | `UNLOCK_PROXY_URL` | Mindful Unlocks Worker URL |
 
    For local release builds, put the same values in a gitignored `keystore.properties` at
    the repo root: `storeFile`, `storePassword`, `keyAlias`, `keyPassword`, `revenueCatKey`.

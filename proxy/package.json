@@ -1,0 +1,12 @@
+{
+  "name": "questlog-unlock-proxy",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "deploy": "npx wrangler@4.142.0 deploy"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.2"
+  }
+}

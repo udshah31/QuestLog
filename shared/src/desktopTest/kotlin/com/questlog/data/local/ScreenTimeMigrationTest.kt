@@ -123,6 +123,20 @@ class ScreenTimeMigrationTest {
     }
 
     @Test
+    fun `9 to 10 creates mindful_unlock`() = runTest {
+        helper.createDatabase(9).close()
+
+        val v10 = helper.runMigrationsAndValidate(10, listOf(MIGRATION_9_10))
+
+        v10.execSQL(
+            "INSERT INTO mindful_unlock (date, packageName, category, purposeful, graceMs, createdAt) " +
+                "VALUES ('2026-09-27', 'com.insta', 'message', 0.9, 300000, 0)"
+        )
+        assertEquals(300_000L, v10.queryLongs("SELECT graceMs FROM mindful_unlock").single().single())
+        v10.close()
+    }
+
+    @Test
     fun `4 to 5 drops the unused currentLevel column`() = runTest {
         helper.createDatabase(4).close()
 

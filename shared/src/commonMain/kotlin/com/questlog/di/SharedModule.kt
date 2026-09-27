@@ -4,6 +4,7 @@ import com.questlog.data.repository.BlocklistRepository
 import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.DailyQuestRepository
 import com.questlog.data.repository.InventoryRepository
+import com.questlog.data.repository.MindfulUnlockRepository
 import com.questlog.data.repository.ScreenTimeRepository
 import com.questlog.domain.PremiumStatusProvider
 import com.questlog.domain.usecase.CalculateDetoxRewardsUseCase
@@ -20,6 +21,7 @@ val sharedModule = module {
     single { InventoryRepository(get()) }
     single { DailyQuestRepository(get()) }
     single { BlocklistRepository(get()) }
+    single { MindfulUnlockRepository(get()) }
 
     // Use cases
     factory {
@@ -39,6 +41,7 @@ val sharedModule = module {
             blockedApps = { get<BlocklistRepository>().current() },
             evaluateDailyQuests = { quests() },
             isPremium = { getOrNull<PremiumStatusProvider>()?.isPremium() ?: false },
+            graceToday = { get<MindfulUnlockRepository>().graceMsToday() },
         )
     }
     factory {

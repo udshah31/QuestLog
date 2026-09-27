@@ -3,6 +3,9 @@ package com.example.questlog
 import android.app.Application
 import android.content.Context
 import com.example.questlog.billing.BillingManager
+import com.example.questlog.ui.unlock.UnlockViewModel
+import com.example.questlog.unlock.InstallId
+import com.example.questlog.unlock.IntentJudge
 import com.example.questlog.billing.MilestoneOfferStore
 import com.example.questlog.data.InstalledAppsProvider
 import com.example.questlog.data.PackageManagerAppsProvider
@@ -23,6 +26,19 @@ val appModule = module {
     single<PremiumStatusProvider> { PremiumStatusProvider { get<BillingManager>().isPremium.value } }
     single<InstalledAppsProvider> { PackageManagerAppsProvider(get()) }
     single { MilestoneOfferStore(androidContext().getSharedPreferences(MilestoneOfferStore.PREFS, Context.MODE_PRIVATE)) }
+    single {
+        val prefs = androidContext().getSharedPreferences(MilestoneOfferStore.PREFS, Context.MODE_PRIVATE)
+        IntentJudge(BuildConfig.UNLOCK_PROXY_URL) { InstallId.get(prefs) }
+    }
+    viewModel {
+        UnlockViewModel(
+            blocklistRepo = get(),
+            installedApps = get(),
+            judge = get(),
+            unlocks = get(),
+            isPremium = { get<BillingManager>().isProOrUnknown() },
+        )
+    }
     viewModel { DashboardViewModel(get(), get(), get(), get(), get(), get(), get()) }
     viewModel {
         com.example.questlog.ui.blocklist.BlocklistViewModel(

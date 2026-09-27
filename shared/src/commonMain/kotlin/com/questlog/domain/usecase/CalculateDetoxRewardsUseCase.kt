@@ -37,6 +37,8 @@ class CalculateDetoxRewardsUseCase(
     private val dailyFlaggedBudgetMs: Long = 60 * 60_000L,
     private val evaluateDailyQuests: suspend () -> Unit = {},
     private val isPremium: () -> Boolean = { false },
+    /** Today's Mindful Unlock grace per package; added to that app's daily limit for the reward only. */
+    private val graceToday: suspend () -> Map<String, Long> = { emptyMap() },
     private val clock: Clock = Clock.System,
 ) {
     suspend operator fun invoke(): DetoxMetrics {
@@ -48,10 +50,12 @@ class CalculateDetoxRewardsUseCase(
 
         // 1. Fetch & persist screen-time data
         val blocked = blockedApps()
+        val grace = graceToday()
         val savedMs = screenTimeRepo.fetchAndPersistToday(
             flaggedPackages = blocked.mapTo(mutableSetOf()) { it.packageName },
             startOfDayMs = startOfDay,
-            allowances = blocked.associate { it.packageName to it.dailyLimitMs },
+            // grace keys too: an app unblocked after its unlock still counts today, and keeps its grace
+            allowances = grace + blocked.associate { it.packageName to it.dailyLimitMs + (grace[it.packageName] ?: 0L) },
         )
 
         // 2. Only reward the *increase* over what today already paid out. Saved time can

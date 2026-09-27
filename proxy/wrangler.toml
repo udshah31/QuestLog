@@ -1,0 +1,13 @@
+name = "questlog-unlock"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# 10 judgments / minute / install id, per Cloudflare location.
+# Ceiling: the id is client-chosen — this stops accidents, not attackers.
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 10
+  period = 60
