@@ -24,7 +24,7 @@ See `README.md` for architecture.
 
 ## Testing patterns
 
-- Use-case / repo tests use hand-written fake DAOs that model real Room semantics (e.g. `UPDATE ... WHERE id = 1` is a no-op when the row is absent). Adding a `@Dao` method means updating every fake: `FakeScreenTimeDao` in `CalculateDetoxRewardsUseCaseTest` (shared; also used by `EvaluateDailyQuestsUseCaseTest`), the fakes in `ScreenTimeRepositoryTest`, and `app`'s `DashboardViewModelTest`. `MindfulUnlockDao` has fakes in `MindfulUnlockRepositoryTest` (shared) and `UnlockViewModelTest` (app). Adding a `QuestDao` method means updating `FakeQuestDao` in `DailyQuestRepositoryTest`, `EvaluateDailyQuestsUseCaseTest` and `DashboardViewModelTest`.
+- Use-case / repo tests use hand-written fake DAOs that model real Room semantics (e.g. `UPDATE ... WHERE id = 1` is a no-op when the row is absent). Adding a `@Dao` method means updating every fake: `FakeScreenTimeDao` in `CalculateDetoxRewardsUseCaseTest` (shared; also used by `EvaluateDailyQuestsUseCaseTest`), the fakes in `ScreenTimeRepositoryTest`, and `app`'s `DashboardViewModelTest`. `MindfulUnlockDao` has fakes in `MindfulUnlockRepositoryTest` (shared) and `UnlockViewModelTest` (app). Adding a `QuestDao` method means updating `FakeQuestDao` in `DailyQuestRepositoryTest`, `EvaluateDailyQuestsUseCaseTest` and `DashboardViewModelTest`. `DailySavedDao` has fakes in `GetProgressStatsUseCaseTest` (`HistoryDao`) and `ProgressViewModelTest` (`NoHistory`).
 - Real Room DB tests run on `desktop`: `Room.inMemoryDatabaseBuilder<QuestLogDatabase>().setDriver(BundledSQLiteDriver())` (needs `@ConstructedBy` on `@Database`, already present).
 - Migration tests: `MigrationTestHelper` as a plain JVM test in `desktopTest`; schema dir is passed via the `questlog.schemasDir` system property set in `shared/build.gradle.kts`.
 - `ScreenTimeRepository`, `DetoxMonitorFlow`, and `ScreenTimeTracker` (`expect` + both `actual`s) are `open` so tests can stub them; `app`'s `BillingManager` is `open` too (`FakeBilling` in `DashboardViewModelTest` scripts offers and purchase callbacks) — a real `DetoxMonitorFlow` in a `runTest` + `advanceUntilIdle()` hangs (infinite `while(true){ delay() }`).
@@ -63,5 +63,7 @@ See `README.md` for architecture.
   (`cd proxy && npm test`).
 - `daily_saved` gets one row per *finished* day, written in `CalculateDetoxRewardsUseCase`'s
   rollover branch (even a 0 day); today is never stored — `GetProgressStatsUseCase` uses the
-  live `PlayerStats.todaySavedMs` for today's bar and "best day". `shared` exposes
+  live `PlayerStats.todaySavedMs` for today's bar and "best day" (best day reads only rows *before* today).
+  `PlayerStats.todaySavedMs` is 0 unless `currency_balance.rewardDate` is today — yesterday's award
+  isn't today's until the rollover tick; `CurrencyRepository` takes an injectable `clock`/`timeZone`. `shared` exposes
   `kotlinx-datetime` as `api` because `ProgressStats` carries `LocalDate`.

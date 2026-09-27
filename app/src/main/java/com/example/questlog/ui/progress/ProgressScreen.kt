@@ -14,16 +14,21 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,6 +45,7 @@ import com.example.questlog.ui.format.levelTitle
 import com.questlog.domain.model.DaySaved
 import com.questlog.domain.model.ProgressStats
 import com.questlog.util.TimeConversion
+import kotlinx.coroutines.delay
 import kotlinx.datetime.LocalDate
 
 @Composable
@@ -54,7 +60,11 @@ fun ProgressScreen(state: ProgressUiState, onBack: () -> Unit) {
         },
     ) {
         Hairline()
-        val s = state.stats ?: return@QuestScaffold
+        val s = state.stats
+        if (s == null) {
+            DelayedLoading()
+            return@QuestScaffold
+        }
         Column(
             Modifier.verticalScroll(rememberScrollState()).padding(top = QuestSpacing.md),
             verticalArrangement = Arrangement.spacedBy(QuestSpacing.lg),
@@ -80,6 +90,24 @@ fun ProgressScreen(state: ProgressUiState, onBack: () -> Unit) {
             ReclaimedChart(s.last7Days)
             Spacer(Modifier.height(QuestSpacing.xxl))
         }
+    }
+}
+
+/** Shown only if loading outlasts 300 ms, so a normal one-frame load never flashes. */
+@Composable
+private fun DelayedLoading() {
+    var show by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(300)
+        show = true
+    }
+    if (show) {
+        Text(
+            "Loading…",
+            style = QuestType.caption,
+            color = QuestLogTheme.colors.inkMuted,
+            modifier = Modifier.padding(top = QuestSpacing.md),
+        )
     }
 }
 
@@ -131,8 +159,11 @@ private fun ReclaimedChart(days: List<DaySaved>) {
             return
         }
         Row(
-            Modifier.fillMaxWidth().semantics {
-                contentDescription = "Last 7 days: " + days.joinToString { "${it.date.dayOfWeek.name.lowercase()} ${reclaimedLine(it.savedMs)}" }
+            // One TalkBack stop for the whole chart, not the summary plus seven letters.
+            Modifier.fillMaxWidth().clearAndSetSemantics {
+                contentDescription = "Last 7 days: " + days.joinToString {
+                    "${if (it.isToday) "today" else it.date.dayOfWeek.name.lowercase()} ${reclaimedLine(it.savedMs)}"
+                }
             },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom,
@@ -143,7 +174,7 @@ private fun ReclaimedChart(days: List<DaySaved>) {
                         Modifier
                             .width(18.dp)
                             .height((72.dp * barFraction(d.savedMs, days)).coerceAtLeast(2.dp))
-                            .clip(RoundedCornerShape(2.dp))
+                            .clip(QuestShapes.extraSmall)
                             .background(if (d.isToday) c.earned else c.inkSecondary),
                     )
                     Spacer(Modifier.height(QuestSpacing.xs))

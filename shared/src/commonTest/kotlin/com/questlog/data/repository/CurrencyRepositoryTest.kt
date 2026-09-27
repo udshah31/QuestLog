@@ -137,4 +137,21 @@ class CurrencyRepositoryTest {
 
         assertEquals(60 * 60_000L, dao.state.value!!.lifetimeSavedMs)
     }
+
+    @Test
+    fun `todaySavedMs is only the award dated today - yesterday's waits for the rollover`() = runTest {
+        val clock = object : kotlinx.datetime.Clock {
+            override fun now() = kotlinx.datetime.Instant.parse("2026-09-27T00:00:30Z") // just past midnight
+        }
+        val dao = FreshInstallCurrencyDao()
+        dao.state.value = CurrencyBalance(id = 1L, rewardDate = "2026-09-26", awardedSavedMsToday = 40 * 60_000L, lifetimeSavedMs = 60 * 60_000L)
+        val repo = CurrencyRepository(dao, clock, kotlinx.datetime.TimeZone.UTC)
+
+        val stale = repo.observePlayerStats().first()
+        assertEquals(0L, stale.todaySavedMs)
+        assertEquals(100 * 60_000L, stale.lifetimeSavedMs, "unfinalised yesterday still counts all-time")
+
+        dao.state.value = dao.state.value!!.copy(rewardDate = "2026-09-27")
+        assertEquals(40 * 60_000L, repo.observePlayerStats().first().todaySavedMs)
+    }
 }

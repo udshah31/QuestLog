@@ -31,7 +31,8 @@ private class HistoryDao(rows: List<DailySaved>) : DailySavedDao {
     override suspend fun upsert(row: DailySaved) = Unit
     override fun observeSince(fromDate: String): Flow<List<DailySaved>> =
         MutableStateFlow(all.filter { it.date >= fromDate }.sortedBy { it.date })
-    override fun observeBestMs(): Flow<Long?> = MutableStateFlow(all.maxOfOrNull { it.savedMs })
+    override fun observeBestMsBefore(date: String): Flow<Long?> =
+        MutableStateFlow(all.filter { it.date < date }.maxOfOrNull { it.savedMs })
 }
 
 private class CountQuestDao(private val count: Int) : QuestDao {
@@ -57,11 +58,11 @@ class GetProgressStatsUseCaseTest {
 
     private suspend fun stats(history: List<DailySaved>, todayMs: Long, streak: Int = 4): ProgressStats {
         val currencyDao = FakeCurrencyDao().apply {
-            balance = balance.copy(awardedSavedMsToday = todayMs, lifetimeSavedMs = 3_600_000L, consecutiveDetoxDays = streak, xp = 150)
+            balance = balance.copy(rewardDate = "2026-09-27", awardedSavedMsToday = todayMs, lifetimeSavedMs = 3_600_000L, consecutiveDetoxDays = streak, xp = 150)
             flow.value = balance
         }
         return GetProgressStatsUseCase(
-            currencyRepo = CurrencyRepository(currencyDao),
+            currencyRepo = CurrencyRepository(currencyDao, clock, TimeZone.UTC),
             dailySavedRepo = DailySavedRepository(HistoryDao(history)),
             questDao = CountQuestDao(7),
             blocklistRepo = BlocklistRepository(TwoBlocked()),
@@ -135,5 +136,11 @@ class GetProgressStatsUseCaseTest {
         val week = seen.last().last7Days
         assertEquals(LocalDate(2026, 9, 28), week.last().date)
         assertEquals(40 * 60_000L, week[5].savedMs, "yesterday's finalised row now shows")
+    }
+
+    @Test
+    fun `a stray row for today never raises best day`() = runTest {
+        val s = stats(listOf(DailySaved("2026-09-27", 99 * 60_000L), DailySaved("2026-09-20", 10 * 60_000L)), todayMs = 5 * 60_000L)
+        assertEquals(10 * 60_000L, s.bestDayMs)
     }
 }

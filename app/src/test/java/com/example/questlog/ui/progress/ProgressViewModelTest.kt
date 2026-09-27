@@ -27,7 +27,7 @@ import kotlin.test.assertTrue
 private class NoHistory : DailySavedDao {
     override suspend fun upsert(row: DailySaved) = Unit
     override fun observeSince(fromDate: String): Flow<List<DailySaved>> = MutableStateFlow(emptyList())
-    override fun observeBestMs(): Flow<Long?> = MutableStateFlow(null)
+    override fun observeBestMsBefore(date: String): Flow<Long?> = MutableStateFlow(null)
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

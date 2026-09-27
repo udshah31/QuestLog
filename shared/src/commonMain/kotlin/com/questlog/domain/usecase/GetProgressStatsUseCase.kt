@@ -40,7 +40,7 @@ class GetProgressStatsUseCase(
         return combine(
             currencyRepo.observePlayerStats(),
             dailySavedRepo.observeSince(windowStart.toString()),
-            dailySavedRepo.observeBestMs(),
+            dailySavedRepo.observeBestMsBefore(today.toString()),
             questDao.observeLifetimeCompletedCount(),
             blocklistRepo.observeBlockedApps(),
         ) { stats, history, bestHistorical, questCount, blocked ->

@@ -15,6 +15,7 @@ interface DailySavedDao {
     @Query("SELECT * FROM daily_saved WHERE date >= :fromDate ORDER BY date ASC")
     fun observeSince(fromDate: String): Flow<List<DailySaved>>
 
-    @Query("SELECT MAX(savedMs) FROM daily_saved")
-    fun observeBestMs(): Flow<Long?>
+    /** Best finished day before [date] — a stray row for today (clock moved back) never counts. */
+    @Query("SELECT MAX(savedMs) FROM daily_saved WHERE date < :date")
+    fun observeBestMsBefore(date: String): Flow<Long?>
 }

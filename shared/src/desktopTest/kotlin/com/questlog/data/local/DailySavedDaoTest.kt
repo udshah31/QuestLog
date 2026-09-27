@@ -37,11 +37,20 @@ class DailySavedDaoTest {
     }
 
     @Test
-    fun `observeBestMs is the max, and null on an empty table`() = runTest {
-        assertNull(dao.observeBestMs().first())
+    fun `best before is the max, and null on an empty table`() = runTest {
+        assertNull(dao.observeBestMsBefore("2026-12-31").first())
         dao.upsert(DailySaved("2026-09-20", 5))
         dao.upsert(DailySaved("2026-09-21", 40))
         dao.upsert(DailySaved("2026-09-22", 0))
-        assertEquals(40L, dao.observeBestMs().first())
+        assertEquals(40L, dao.observeBestMsBefore("2026-12-31").first())
+    }
+
+    @Test
+    fun `best before a date excludes that date and later`() = runTest {
+        dao.upsert(DailySaved("2026-09-20", 5))
+        dao.upsert(DailySaved("2026-09-26", 30))
+        dao.upsert(DailySaved("2026-09-27", 90))
+        assertEquals(30L, dao.observeBestMsBefore("2026-09-27").first())
+        assertNull(dao.observeBestMsBefore("2026-09-20").first())
     }
 }

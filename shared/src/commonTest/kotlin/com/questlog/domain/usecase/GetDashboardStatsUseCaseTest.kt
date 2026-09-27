@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlinx.datetime.toLocalDateTime
 import kotlin.test.assertEquals
 
 private class StubCurrencyDao(balance: CurrencyBalance) : CurrencyDao {
@@ -57,7 +58,9 @@ class GetDashboardStatsUseCaseTest {
 
     @Test
     fun `todaySavedMs mirrors the currency balance's daily high-water mark`() = runTest {
-        val state = useCase(CurrencyBalance(id = 1L, awardedSavedMsToday = 42 * 60_000L)).invoke().first()
+        val today = kotlinx.datetime.Clock.System.now()
+            .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date.toString()
+        val state = useCase(CurrencyBalance(id = 1L, rewardDate = today, awardedSavedMsToday = 42 * 60_000L)).invoke().first()
 
         assertEquals(42 * 60_000L, state.stats.todaySavedMs)
     }

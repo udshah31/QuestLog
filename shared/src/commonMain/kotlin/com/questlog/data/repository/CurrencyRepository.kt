@@ -11,7 +11,11 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-class CurrencyRepository(private val dao: CurrencyDao) {
+class CurrencyRepository(
+    private val dao: CurrencyDao,
+    private val clock: Clock = Clock.System,
+    private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
+) {
 
     /**
      * Guarantees the single balance row (id = 1) exists. Safe to call concurrently and
@@ -61,7 +65,7 @@ class CurrencyRepository(private val dao: CurrencyDao) {
         dao.observe().map { balance ->
             val b = balance ?: CurrencyBalance()
             val multiplier = TimeConversion.streakMultiplier(b.consecutiveDetoxDays)
-            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+            val today = clock.now().toLocalDateTime(timeZone).date
             PlayerStats(
                 level = TimeConversion.levelFromXp(b.xp),
                 xp = b.xp,
@@ -70,7 +74,8 @@ class CurrencyRepository(private val dao: CurrencyDao) {
                 gems = b.gems,
                 consecutiveDetoxDays = b.consecutiveDetoxDays,
                 streakMultiplier = multiplier,
-                todaySavedMs = b.awardedSavedMsToday,
+                // Yesterday's award until the first tick after midnight rolls it over: not today's.
+                todaySavedMs = if (b.rewardDate == today.toString()) b.awardedSavedMsToday else 0L,
                 lifetimeSavedMs = b.lifetimeSavedMs + b.awardedSavedMsToday,
                 streakFreezeReady = StreakFreeze.isRechargedOn(b.streakFreezeLastUsed, today),
             )
