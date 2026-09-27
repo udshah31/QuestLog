@@ -24,7 +24,7 @@ See `README.md` for architecture.
 
 ## Testing patterns
 
-- Use-case / repo tests use hand-written fake DAOs that model real Room semantics (e.g. `UPDATE ... WHERE id = 1` is a no-op when the row is absent). Adding a `@Dao` method means updating every fake: `FakeScreenTimeDao` in `CalculateDetoxRewardsUseCaseTest` (shared; also used by `EvaluateDailyQuestsUseCaseTest`), the fakes in `ScreenTimeRepositoryTest`, and `app`'s `DashboardViewModelTest`.
+- Use-case / repo tests use hand-written fake DAOs that model real Room semantics (e.g. `UPDATE ... WHERE id = 1` is a no-op when the row is absent). Adding a `@Dao` method means updating every fake: `FakeScreenTimeDao` in `CalculateDetoxRewardsUseCaseTest` (shared; also used by `EvaluateDailyQuestsUseCaseTest`), the fakes in `ScreenTimeRepositoryTest`, and `app`'s `DashboardViewModelTest`. `MindfulUnlockDao` has fakes in `MindfulUnlockRepositoryTest` (shared) and `UnlockViewModelTest` (app).
 - Real Room DB tests run on `desktop`: `Room.inMemoryDatabaseBuilder<QuestLogDatabase>().setDriver(BundledSQLiteDriver())` (needs `@ConstructedBy` on `@Database`, already present).
 - Migration tests: `MigrationTestHelper` as a plain JVM test in `desktopTest`; schema dir is passed via the `questlog.schemasDir` system property set in `shared/build.gradle.kts`.
 - `ScreenTimeRepository`, `DetoxMonitorFlow`, and `ScreenTimeTracker` (`expect` + both `actual`s) are `open` so tests can stub them; `app`'s `BillingManager` is `open` too (`FakeBilling` in `DashboardViewModelTest` scripts offers and purchase callbacks) — a real `DetoxMonitorFlow` in a `runTest` + `advanceUntilIdle()` hangs (infinite `while(true){ delay() }`).
@@ -55,3 +55,7 @@ See `README.md` for architecture.
 - `BillingManager.isPremium == false` means "unknown" until `entitlementsKnown` is true —
   gate anything that treats the player as free (the 7-day milestone paywall) on it.
   The milestone flag lives in SharedPreferences (`MilestoneOfferStore`), not Room.
+- Mindful Unlock grace is reward-only: `CalculateDetoxRewardsUseCase` adds
+  `graceToday()` to each app's allowance; the streak reads raw totals and never sees it.
+  The typed reason is never persisted. `proxy/` is a Cloudflare Worker, not in Android CI
+  (`cd proxy && npm test`).

@@ -92,13 +92,12 @@ category: String, purposeful: Double, graceMs: Long, createdAt: Long)`, index on
 No reason column.
 
 `MindfulUnlockDao`: `insert`, `graceByPackageForDate(date): List<PackageGrace>`
-(`SELECT packageName, SUM(graceMs) ... GROUP BY packageName`), `countForDate(date): Int`,
-`observeCountForDate(date): Flow<Int>`.
+(`SELECT packageName, SUM(graceMs) ... GROUP BY packageName`), `countForDate(date): Int`.
 
 `MindfulUnlockRepository(dao, clock, timeZone)` (injectable clock/tz like
 `DailyQuestRepository`): `record(packageName, category, purposeful): Long` (computes and
 stores `graceFor`, returns the grace granted), `graceMsToday(): Map<String, Long>`,
-`countToday(): Int`, `observeCountToday(): Flow<Int>`.
+`countToday(): Int` (the ViewModel re-reads it after each check and on `Reset`; no flow needed).
 
 Every fake DAO rule in CLAUDE.md applies (new DAO → new fake where tests need it).
 

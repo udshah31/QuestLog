@@ -43,6 +43,7 @@ jobs:
       - name: Build Android App Bundle (AAB)
         env:
           REVENUECAT_API_KEY: ${{ secrets.REVENUECAT_API_KEY }}
+          UNLOCK_PROXY_URL: ${{ secrets.UNLOCK_PROXY_URL }}
           ANDROID_KEYSTORE_FILE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && format('{0}/release.keystore', runner.temp) || '' }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
