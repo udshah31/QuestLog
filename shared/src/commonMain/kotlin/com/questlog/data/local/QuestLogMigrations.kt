@@ -96,6 +96,19 @@ internal val MIGRATION_8_9 = object : Migration(8, 9) {
     }
 }
 
+/** v10: judged Mindful Unlocks (grace per app per day). No reason text is stored. */
+internal val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `mindful_unlock` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `date` TEXT NOT NULL, " +
+                "`packageName` TEXT NOT NULL, `category` TEXT NOT NULL, `purposeful` REAL NOT NULL, " +
+                "`graceMs` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)"
+        )
+        connection.execSQL("CREATE INDEX IF NOT EXISTS `index_mindful_unlock_date` ON `mindful_unlock` (`date`)")
+    }
+}
+
 /**
  * Seeds `blocked_app` on a fresh database (fresh installs never run migrations).
  * Uses the live [com.questlog.domain.model.defaultFlaggedPackages] — unlike a
@@ -117,4 +130,5 @@ internal val questLogMigrations: Array<Migration> =
     arrayOf(
         MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
         MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+        MIGRATION_9_10,
     )
