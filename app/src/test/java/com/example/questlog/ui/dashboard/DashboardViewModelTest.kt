@@ -1,5 +1,6 @@
 package com.example.questlog.ui.dashboard
 
+import android.app.Activity
 import com.example.questlog.billing.BillingManager
 import com.example.questlog.billing.MilestoneOfferStore
 import com.questlog.data.local.dao.CurrencyDao
@@ -358,5 +359,16 @@ class DashboardViewModelTest {
         assertEquals(PaywallReason.Manual, s.paywallReason)
         assertFalse(s.offerLoading)
         assertEquals(null, s.proOffer) // Purchases isn't configured in unit tests
+    }
+
+    @Test
+    fun `buy pro without an offer is a no-op`() = runTest {
+        val vm = milestoneVm(streak = 0)
+        advanceUntilIdle()
+        vm.onIntent(DashboardIntent.OpenPaywall)
+        advanceUntilIdle()
+        vm.onIntent(DashboardIntent.BuyPro(mock<Activity>()))
+        assertFalse(vm.uiState.value.purchasing)
+        assertTrue(vm.uiState.value.showPaywall)
     }
 }

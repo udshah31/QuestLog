@@ -1,5 +1,6 @@
 package com.example.questlog.ui.dashboard
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.questlog.billing.BillingManager
@@ -55,6 +56,7 @@ sealed interface DashboardIntent {
     object OpenPaywall : DashboardIntent
     object DismissPaywall : DashboardIntent
     object UnlockProDemo : DashboardIntent
+    data class BuyPro(val activity: Activity) : DashboardIntent
     object DismissSnackbar : DashboardIntent
 }
 
@@ -151,6 +153,31 @@ class DashboardViewModel(
 
             is DashboardIntent.DismissPaywall -> {
                 _uiState.update { it.copy(showPaywall = false) }
+            }
+
+            is DashboardIntent.BuyPro -> {
+                val state = _uiState.value
+                val offer = state.proOffer ?: return
+                if (state.purchasing) return // double-tap guard
+                _uiState.update { it.copy(purchasing = true) }
+                billingManager.purchasePackage(
+                    activity = intent.activity,
+                    pkg = offer.pkg,
+                    onSuccess = {
+                        // Entitlement reaches isPremium via BillingManager's listener.
+                        _uiState.update {
+                            it.copy(purchasing = false, showPaywall = false, snackbarMessage = "Welcome to QuestLog Pro.")
+                        }
+                    },
+                    onError = { _, userCancelled ->
+                        _uiState.update {
+                            it.copy(
+                                purchasing = false,
+                                snackbarMessage = if (userCancelled) it.snackbarMessage else "Purchase didn't go through.",
+                            )
+                        }
+                    },
+                )
             }
 
             is DashboardIntent.UnlockProDemo -> {
