@@ -1,7 +1,7 @@
 # Progress Screen — Design
 
 **Status:** approved design, ready for planning
-**Date:** 2026-08-31
+**Date:** 2026-08-31 (updated 2026-09-27 for DB v10 on main)
 
 ## Goal
 
@@ -33,12 +33,12 @@ Relevant existing shape:
 - `GetDashboardStatsUseCase` combines `observePlayerStats()` + buildings + blocklist into
   `DashboardState`. `DashboardViewModel` also derives `blockedAppCount`.
 - `quest_completions` has one row per (date, questId) completed. `QuestDao` has no count query.
-- DB is at **version 9**. Migrations live in `commonMain/data/local/QuestLogMigrations.kt`;
+- DB is at **version 10** (v10 added `mindful_unlock`, Mindful Unlocks). Migrations live in `commonMain/data/local/QuestLogMigrations.kt`;
   `questLogMigrations` is the ordered array; `DatabaseFactory` (androidMain) wires it.
 - DAOs are exposed on `QuestLogDatabase` and registered one-per-`single` in the platform
   Koin module (`shared/src/androidMain/.../di/PlatformModule.android.kt`).
 - App Koin module is in `app/.../QuestLogApp.kt` (`viewModel { … }`).
-- `enum class Screen { Today, Realm, Blocklist }` in `ui/QuestLogRoot.kt`; screen switching
+- `enum class Screen { Today, Realm, Blocklist, Unlock }` in `ui/QuestLogRoot.kt`; screen switching
   is an `AnimatedContent` keyed on `screen`, with `BackHandler(enabled = screen != Today)`.
 - Colour comes from `QuestLogTheme.colors` semantic tokens only. Palette #1: `earned` is
   the sole accent (red); `inkSecondary`/`inkMuted` are the greys.
@@ -73,15 +73,15 @@ interface DailySavedDao {
 
 ### Database — `QuestLogDatabase.kt`
 
-- `version = 10`
+- `version = 11`
 - add `DailySaved::class` to `entities`
 - add `abstract fun dailySavedDao(): DailySavedDao`
 
 ### Migration — `QuestLogMigrations.kt`
 
 ```kotlin
-/** v10: per-day reclaimed-time history, for the Progress chart and "best day". */
-internal val MIGRATION_9_10 = object : Migration(9, 10) {
+/** v11: per-day reclaimed-time history, for the Progress chart and "best day". */
+internal val MIGRATION_10_11 = object : Migration(10, 11) {
     override fun migrate(connection: SQLiteConnection) {
         connection.execSQL(
             "CREATE TABLE IF NOT EXISTS `daily_saved` (" +
@@ -92,7 +92,7 @@ internal val MIGRATION_9_10 = object : Migration(9, 10) {
 }
 ```
 
-Append `MIGRATION_9_10` to `questLogMigrations`. The `CREATE TABLE` must match the entity's
+Append `MIGRATION_10_11` to `questLogMigrations`. The `CREATE TABLE` must match the entity's
 exported `createSql` exactly (no DB-side `DEFAULT` the entity omits).
 
 ### Repository — `data/repository/DailySavedRepository.kt`
@@ -270,7 +270,7 @@ Body: `Hairline()`, then a `verticalScroll` `Column(spacedBy(QuestSpacing.lg))`:
 
 ### Navigation — `ui/QuestLogRoot.kt`
 
-- `enum class Screen { Today, Realm, Blocklist, Progress }`
+- `enum class Screen { Today, Realm, Blocklist, Unlock, Progress }`
 - new `when` branch:
   ```kotlin
   Screen.Progress -> {
@@ -284,7 +284,7 @@ Body: `Hairline()`, then a `verticalScroll` `Column(spacedBy(QuestSpacing.lg))`:
 
 ### Entry point — `ui/today/TodayScreen.kt` + `ui/today/TodayHero.kt`
 
-- `TodayScreen` gains `onOpenProgress: () -> Unit`, forwarded to `TodayHero(state.stats, onOpenProgress)`.
+- `TodayScreen` gains `onOpenProgress: () -> Unit` (after `onOpenUnlock`), forwarded to `TodayHero(state.stats, onOpenProgress)`.
 - `TodayHero(stats, onOpenProgress)` — the `ProgressRing`'s modifier gets
   `.clickable(onClickLabel = "Open progress", onClick = onOpenProgress)` placed **before**
   `.clearAndSetSemantics { … }`, so the ring stays a single a11y node carrying both the
@@ -326,17 +326,22 @@ viewModel { ProgressViewModel(get()) }
 | Test | Module / dir | Asserts |
 |---|---|---|
 | `DailySavedDaoTest` | `shared` `desktopTest` (real in-memory Room, `BundledSQLiteDriver`) | `upsert` replaces on same `date`; `observeSince` is `>=` and ordered ascending; `observeBestMs` returns MAX, and `null` on an empty table |
-| `ScreenTimeMigrationTest` — `9 to 10 creates daily_saved` | `shared` `desktopTest` (`MigrationTestHelper`) | table exists after `MIGRATION_9_10` and validates against `10.json`; `date` is the primary key (duplicate insert rejected) |
+| `ScreenTimeMigrationTest` — `10 to 11 creates daily_saved` | `shared` `desktopTest` (`MigrationTestHelper`) | table exists after `MIGRATION_10_11` and validates against `11.json`; `date` is the primary key (duplicate insert rejected) |
 | `CalculateDetoxRewardsUseCaseTest` — new case | `shared` `commonTest` | on rollover, `recordDailySaved` is invoked exactly once with `(lastDay, awardedSavedMsToday)`; it is **not** invoked when `lastDay == today` (first run of the day only) |
 | `GetProgressStatsUseCaseTest` | `shared` `commonTest` (hand fakes for `DailySavedDao` reads via a fake `DailySavedRepository`, a stub `QuestDao` count flow, `CurrencyRepository` over a stub `CurrencyDao`, `BlocklistRepository` over a stub `BlocklistDao`; inject fixed `clock`/`timeZone`) | `last7Days` has exactly 7 entries, `[6].isToday`, dates contiguous ending today; today's `savedMs` == `PlayerStats.todaySavedMs` even if a `daily_saved` row exists for today; a day with no row → `savedMs == 0`; `bestDayMs == maxOf(historyMax, todaySavedMs)` |
 | `ProgressViewModelTest` | `app` (`@OptIn(ExperimentalCoroutinesApi::class)`, `Dispatchers.setMain(StandardTestDispatcher())`) | initial `isLoading == true`; after `advanceUntilIdle()`, `isLoading == false` and `stats` is the use case's emission |
 
 Previews: `ProgressScreenPreview` (populated) and `ProgressScreenPreview_EmptyWeek`.
 
-**Schema JSON:** the build regenerates `1.json … 10.json`. Commit only `10.json`;
-`git checkout shared/schemas/com.questlog.data.local.QuestLogDatabase/{1..9}.json`.
+**Schema JSON:** the build exports `11.json`. Commit only `11.json`; if any older `N.json`
+changed, `git checkout` it (they stay frozen).
 
-**Fake fan-out:** because `recordDailySaved` has a `{ _, _ -> }` default, the existing
+**QuestDao fake fan-out:** `observeLifetimeCompletedCount()` is a new `QuestDao` method, so
+every fake implements it: `DailyQuestRepositoryTest`, `EvaluateDailyQuestsUseCaseTest`
+(shared) and `DashboardViewModelTest` (app). The instrumented `TodayScreenTest` calls
+`TodayScreen` positionally and gains the new lambda.
+
+**Detox fake fan-out:** because `recordDailySaved` has a `{ _, _ -> }` default, the existing
 `CalculateDetoxRewardsUseCase(...)` construction sites in `CalculateDetoxRewardsUseCaseTest`
 (8, via a helper), `DashboardViewModelTest` (4), and any in `EvaluateDailyQuestsUseCaseTest`
 compile unchanged and the write is a no-op there. Only the one new rollover test passes a
