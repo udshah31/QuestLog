@@ -309,6 +309,54 @@ class CalculateDetoxRewardsUseCaseTest {
         assertEquals(blocked.timeSavedMs, farmed.timeSavedMs, "saved time does not jump")
     }
 
+    @Test
+    fun `mindful grace is charged like extra daily limit for that app only`() = runTest {
+        val usage = listOf(AppUsage("com.insta", 10 * 60_000L), AppUsage("com.tiktok", 10 * 60_000L))
+        val tz = TimeZone.currentSystemDefault()
+        val noon = Clock.System.now().toLocalDateTime(tz).date.atTime(12, 0).toInstant(tz)
+
+        suspend fun savedWith(grace: Map<String, Long>): Long {
+            val currencyDao = FakeCurrencyDao()
+            CalculateDetoxRewardsUseCase(
+                screenTimeRepo = ScreenTimeRepository(
+                    FakeScreenTimeDao(),
+                    object : ScreenTimeTracker() {
+                        override suspend fun getUsageForPeriod(startMs: Long, endMs: Long) = usage
+                        override fun isPermissionGranted() = true
+                    },
+                ),
+                currencyRepo = CurrencyRepository(currencyDao),
+                blockedApps = blocked("com.insta", "com.tiktok"),
+                graceToday = { grace },
+                clock = PinnedClock(noon),
+            )()
+            return currencyDao.balance.awardedSavedMsToday
+        }
+
+        val none = savedWith(emptyMap())
+        val instaGrace = savedWith(mapOf("com.insta" to 5 * 60_000L))
+        // Only Instagram's 5 min are spared; TikTok's 10 min still cost.
+        assertEquals(5 * 60_000L, instaGrace - none)
+    }
+
+    @Test
+    fun `mindful grace does not rescue a streak day that went over budget`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            balance = balance.copy(rewardDate = daysAgoKey(1), consecutiveDetoxDays = 3)
+        }
+        val repo = StubScreenTimeRepo(
+            savedMs = 0L,
+            foregroundByDate = mapOf(daysAgoKey(1) to 90 * 60_000L), // over the 60 min budget
+        )
+
+        CalculateDetoxRewardsUseCase(
+            repo, CurrencyRepository(currencyDao), blocked("com.instagram.android"),
+            graceToday = { mapOf("com.instagram.android" to 60 * 60_000L) },
+        )()
+
+        assertEquals(0, currencyDao.balance.consecutiveDetoxDays)
+    }
+
     private fun useCaseFor(
         repo: ScreenTimeRepository,
         currencyRepo: CurrencyRepository,

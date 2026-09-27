@@ -41,6 +41,7 @@ val sharedModule = module {
             blockedApps = { get<BlocklistRepository>().current() },
             evaluateDailyQuests = { quests() },
             isPremium = { getOrNull<PremiumStatusProvider>()?.isPremium() ?: false },
+            graceToday = { get<MindfulUnlockRepository>().graceMsToday() },
         )
     }
     factory {
