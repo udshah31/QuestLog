@@ -36,7 +36,7 @@ val appModule = module {
             installedApps = get(),
             judge = get(),
             unlocks = get(),
-            isPremium = { get<BillingManager>().isPremium.value },
+            isPremium = { get<BillingManager>().isProOrUnknown() },
         )
     }
     viewModel { DashboardViewModel(get(), get(), get(), get(), get(), get(), get()) }

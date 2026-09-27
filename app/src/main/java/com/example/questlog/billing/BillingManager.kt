@@ -64,6 +64,9 @@ open class BillingManager {
         _entitlementsKnown.value = true
     }
 
+    /** For gating a paid perk: until CustomerInfo arrives, don't treat the player as free. */
+    fun isProOrUnknown(): Boolean = isPremium.value || !entitlementsKnown.value
+
     /** The current Offering's monthly (else first) package, or null on any failure. */
     open suspend fun loadProOffer(): ProOffer? = try {
         val offering = Purchases.sharedInstance.awaitOfferings().current

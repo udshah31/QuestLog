@@ -17,4 +17,13 @@ class BillingManagerTest {
         billing.setDebugPremium(false)
         assertTrue(billing.entitlementsKnown.value)
     }
+
+    @Test fun `unknown entitlements count as Pro for gating, known free does not`() {
+        val billing = BillingManager()
+        assertTrue(billing.isProOrUnknown())
+        billing.setDebugPremium(false)
+        assertFalse(billing.isProOrUnknown())
+        billing.setDebugPremium(true)
+        assertTrue(billing.isProOrUnknown())
+    }
 }

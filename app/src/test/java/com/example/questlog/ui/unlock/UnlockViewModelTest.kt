@@ -183,4 +183,21 @@ class UnlockViewModelTest {
         assertEquals("", s.reason)
         assertEquals(1, s.usedToday)
     }
+
+    @Test
+    fun `leaving mid-check cancels it - no stale verdict, no extra unlock`() = runTest {
+        val unlocks = Unlocks()
+        val stale = CompletableDeferred<Unit>()
+        val judge = Judge(Verdict.Judged(0.9, "message")).apply { gate = stale }
+        val vm = vm(judge, unlocks)
+        vm.ask("reply to mum"); advanceUntilIdle()   // in flight, held on the gate
+        vm.onIntent(UnlockIntent.Reset); advanceUntilIdle()
+        judge.gate = null
+        judge.verdict = Verdict.Judged(0.95, "boredom")
+        vm.ask("bored"); advanceUntilIdle()            // the new check completes
+        stale.complete(Unit); advanceUntilIdle()       // the old one would land now
+
+        assertEquals(UnlockPhase.Drifting, vm.uiState.value.phase)
+        assertEquals(listOf("boredom"), unlocks.rows.map { it.category })
+    }
 }

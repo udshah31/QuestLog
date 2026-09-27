@@ -1,5 +1,6 @@
 package com.example.questlog.unlock
 
+import android.content.Context
 import android.content.SharedPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -67,3 +68,10 @@ object InstallId {
     fun get(prefs: SharedPreferences): String =
         prefs.getString(KEY, null) ?: UUID.randomUUID().toString().also { prefs.edit().putString(KEY, it).apply() }
 }
+
+/** Launches [packageName]; false if it has no launcher entry or is disabled/restricted. */
+fun launchApp(context: Context, packageName: String): Boolean = runCatching {
+    val launch = context.packageManager.getLaunchIntentForPackage(packageName) ?: return false
+    context.startActivity(launch)
+    true
+}.getOrDefault(false)

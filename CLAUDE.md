@@ -53,7 +53,8 @@ See `README.md` for architecture.
   allowance — only overage counts (`DetoxBudget.chargeableMs`).
 - The blocklist app-list needs `<queries>` in `app/src/main/AndroidManifest.xml` — `PackageManager.queryIntentActivities` is filtered to near-nothing on API 30+ without it.
 - `BillingManager.isPremium == false` means "unknown" until `entitlementsKnown` is true —
-  gate anything that treats the player as free (the 7-day milestone paywall) on it.
+  gate anything that treats the player as free (the 7-day milestone paywall) on it;
+  for gating a paid perk use `BillingManager.isProOrUnknown()` (Mindful Unlocks' free cap).
   The milestone flag lives in SharedPreferences (`MilestoneOfferStore`), not Room.
 - Mindful Unlock grace is reward-only: `CalculateDetoxRewardsUseCase` adds
   `graceToday()` to each app's allowance; the streak reads raw totals and never sees it.

@@ -9,6 +9,7 @@ import com.example.questlog.unlock.Verdict
 import com.questlog.data.repository.BlocklistRepository
 import com.questlog.data.repository.MindfulUnlockRepository
 import com.questlog.domain.unlock.MindfulUnlockRule
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,6 +64,9 @@ class UnlockViewModel(
     private val _events = Channel<UnlockEvent>(Channel.BUFFERED)
     val events: Flow<UnlockEvent> = _events.receiveAsFlow()
 
+    /** The check in flight, if any. Leaving or picking another app cancels it. */
+    private var checkJob: Job? = null
+
     init { load() }
 
     private fun load() = viewModelScope.launch {
@@ -75,12 +79,16 @@ class UnlockViewModel(
 
     fun onIntent(intent: UnlockIntent) {
         when (intent) {
-            is UnlockIntent.Select -> _uiState.update { it.copy(selected = intent.app, reason = "", phase = UnlockPhase.Reason) }
+            is UnlockIntent.Select -> {
+                checkJob?.cancel()
+                _uiState.update { it.copy(selected = intent.app, reason = "", phase = UnlockPhase.Reason) }
+            }
             is UnlockIntent.SetReason -> _uiState.update { it.copy(reason = intent.text.take(MAX_REASON)) }
             UnlockIntent.Check -> check()
             UnlockIntent.Open -> _uiState.value.selected?.let { _events.trySend(UnlockEvent.Launch(it.packageName)) }
             UnlockIntent.NotNow -> _events.trySend(UnlockEvent.Close)
             UnlockIntent.Reset -> {
+                checkJob?.cancel()
                 _uiState.update { it.copy(selected = null, reason = "", phase = UnlockPhase.Pick) }
                 load()
             }
@@ -93,7 +101,7 @@ class UnlockViewModel(
         val reason = s.reason.trim()
         if (reason.isEmpty() || s.phase == UnlockPhase.Checking) return
         _uiState.update { it.copy(phase = UnlockPhase.Checking) } // synchronous: blocks a double tap
-        viewModelScope.launch {
+        checkJob = viewModelScope.launch {
             val premium = isPremium() // read live: a purchase since the screen opened counts
             if (!premium && unlocks.countToday() >= MindfulUnlockRule.FREE_UNLOCKS_PER_DAY) {
                 _uiState.update { it.copy(phase = UnlockPhase.Reason, isPremium = false) }
