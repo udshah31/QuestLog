@@ -1,6 +1,5 @@
 package com.example.questlog.ui.paywall
 
-import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,6 +30,7 @@ import com.example.questlog.theme.QuestSpacing
 import com.example.questlog.theme.QuestType
 import com.example.questlog.ui.common.Hairline
 import com.example.questlog.ui.common.QuestScaffold
+import com.example.questlog.ui.dashboard.PaywallReason
 
 private data class Perk(val mark: String, val title: String, val desc: String)
 
@@ -40,10 +40,33 @@ private val PRO_PERKS = listOf(
     Perk("▢", "Two realm buildings", "Crystal Castle and Aurora Fountain"),
 )
 
+internal enum class PaywallAction { Buy, Demo, None }
+internal data class PaywallButton(val label: String, val action: PaywallAction)
+
+internal fun paywallButton(
+    priceText: String?,
+    trialText: String?,
+    offerLoading: Boolean,
+    demoAvailable: Boolean,
+): PaywallButton = when {
+    priceText != null && trialText != null -> PaywallButton("Start free trial", PaywallAction.Buy)
+    priceText != null -> PaywallButton("Unlock — $priceText", PaywallAction.Buy)
+    offerLoading -> PaywallButton("Loading price…", PaywallAction.None)
+    demoAvailable -> PaywallButton("Unlock — demo", PaywallAction.Demo)
+    else -> PaywallButton("Pro unavailable right now", PaywallAction.None)
+}
+
 @Composable
 fun PaywallScreen(
+    reason: PaywallReason,
+    priceText: String?,
+    trialText: String?,
+    offerLoading: Boolean,
+    purchasing: Boolean,
+    demoAvailable: Boolean,
+    onBuy: () -> Unit,
+    onUnlockDemo: () -> Unit,
     onDismiss: () -> Unit,
-    onUnlockPro: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val c = QuestLogTheme.colors
@@ -69,16 +92,25 @@ fun PaywallScreen(
             Spacer(Modifier.height(QuestSpacing.md))
 
             Column(verticalArrangement = Arrangement.spacedBy(QuestSpacing.sm)) {
+                val milestone = reason == PaywallReason.Milestone
                 Text(
-                    "Architect of the High Realm".uppercase(),
+                    (if (milestone) "7-day streak" else "Architect of the High Realm").uppercase(),
                     style = QuestType.label,
                     color = c.earned,
                 )
                 Text(
-                    "Keep the whole realm, not half of it.",
+                    if (milestone) "Seven days kept." else "Keep the whole realm, not half of it.",
                     style = QuestType.heroLine,
                     color = c.inkPrimary,
                 )
+                if (milestone && priceText != null) {
+                    Text(
+                        if (trialText != null) "Your realm earned a trial: $trialText, then $priceText."
+                        else "Keep the whole realm: $priceText.",
+                        style = QuestType.bodyLarge,
+                        color = c.inkSecondary,
+                    )
+                }
             }
 
             Column {
@@ -89,8 +121,16 @@ fun PaywallScreen(
                 }
             }
 
+            val button = paywallButton(priceText, trialText, offerLoading, demoAvailable)
             Button(
-                onClick = onUnlockPro,
+                onClick = {
+                    when (button.action) {
+                        PaywallAction.Buy -> onBuy()
+                        PaywallAction.Demo -> onUnlockDemo()
+                        PaywallAction.None -> Unit
+                    }
+                },
+                enabled = button.action != PaywallAction.None && !purchasing,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                 shape = QuestShapes.medium,
                 colors = ButtonDefaults.buttonColors(
@@ -98,7 +138,17 @@ fun PaywallScreen(
                     contentColor = c.ground,
                 ),
             ) {
-                Text("Unlock — \$4.99 / month", style = QuestType.bodyLarge)
+                Text(button.label, style = QuestType.bodyLarge)
+            }
+
+            if (trialText != null && priceText != null) {
+                Text(
+                    "Cancel anytime before the trial ends.",
+                    style = QuestType.caption,
+                    color = c.inkMuted,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             TextButton(
@@ -107,14 +157,6 @@ fun PaywallScreen(
             ) {
                 Text("Maybe later".uppercase(), style = QuestType.caption, color = c.inkMuted)
             }
-
-            Text(
-                "Local receipt validation via RevenueCat. Works offline.",
-                style = QuestType.caption,
-                color = c.inkMuted,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
 
             Spacer(Modifier.height(QuestSpacing.xxl))
         }
@@ -142,11 +184,26 @@ private fun PerkRow(perk: Perk) {
     }
 }
 
-@Preview(name = "Paywall")
-@Preview(name = "Paywall dark", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Paywall — manual, loading")
 @Composable
 private fun PaywallScreenPreview() {
     QuestLogTheme {
-        PaywallScreen(onDismiss = {}, onUnlockPro = {})
+        PaywallScreen(
+            reason = PaywallReason.Manual, priceText = null, trialText = null,
+            offerLoading = true, purchasing = false, demoAvailable = false,
+            onBuy = {}, onUnlockDemo = {}, onDismiss = {},
+        )
+    }
+}
+
+@Preview(name = "Paywall — milestone, trial")
+@Composable
+private fun PaywallMilestonePreview() {
+    QuestLogTheme {
+        PaywallScreen(
+            reason = PaywallReason.Milestone, priceText = "$4.99 / month", trialText = "7 days free",
+            offerLoading = false, purchasing = false, demoAvailable = false,
+            onBuy = {}, onUnlockDemo = {}, onDismiss = {},
+        )
     }
 }

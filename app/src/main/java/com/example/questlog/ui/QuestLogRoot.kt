@@ -1,5 +1,6 @@
 package com.example.questlog.ui
 
+import android.app.Activity
 import android.content.Intent
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.example.questlog.BuildConfig
 import com.example.questlog.ui.blocklist.BlocklistIntent
 import com.example.questlog.ui.blocklist.BlocklistScreen
 import com.example.questlog.ui.blocklist.BlocklistViewModel
@@ -139,9 +141,17 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
                 slideOutVertically(tween(250)) { it } + fadeOut(tween(250))
             },
         ) {
+            val activity = LocalContext.current as Activity
             PaywallScreen(
+                reason = state.paywallReason,
+                priceText = state.proOffer?.priceText,
+                trialText = state.proOffer?.trialText,
+                offerLoading = state.offerLoading,
+                purchasing = state.purchasing,
+                demoAvailable = BuildConfig.DEBUG,
+                onBuy = { viewModel.onIntent(DashboardIntent.BuyPro(activity)) },
+                onUnlockDemo = { viewModel.onIntent(DashboardIntent.UnlockProDemo) },
                 onDismiss = { viewModel.onIntent(DashboardIntent.DismissPaywall) },
-                onUnlockPro = { viewModel.onIntent(DashboardIntent.UnlockProDemo) },
             )
         }
     }
