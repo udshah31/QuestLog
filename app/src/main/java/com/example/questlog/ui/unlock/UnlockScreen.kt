@@ -19,6 +19,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.example.questlog.theme.QuestIcons
 import com.example.questlog.theme.QuestLogTheme
@@ -42,13 +43,22 @@ fun UnlockScreen(state: UnlockUiState, onIntent: (UnlockIntent) -> Unit, onBack:
         Hairline()
         val app = state.selected
         if (app == null || state.phase == UnlockPhase.Pick) {
+            if (state.loaded && state.apps.isEmpty()) {
+                Text(
+                    "Add apps under Distractions first.",
+                    style = QuestType.bodyLarge,
+                    color = c.inkMuted,
+                    modifier = Modifier.padding(top = QuestSpacing.lg),
+                )
+            }
             LazyColumn {
                 items(state.apps, key = { it.packageName }) { a ->
                     Text(
                         a.label,
                         style = QuestType.bodyLarge,
                         color = c.inkPrimary,
-                        modifier = Modifier.fillMaxWidth().clickable { onIntent(UnlockIntent.Select(a)) }
+                        modifier = Modifier.fillMaxWidth()
+                            .clickable(role = Role.Button) { onIntent(UnlockIntent.Select(a)) }
                             .padding(vertical = QuestSpacing.md),
                     )
                     Hairline()
@@ -64,13 +74,16 @@ fun UnlockScreen(state: UnlockUiState, onIntent: (UnlockIntent) -> Unit, onBack:
                         value = state.reason,
                         onValueChange = { onIntent(UnlockIntent.SetReason(it)) },
                         modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Reason") },
                         enabled = state.phase == UnlockPhase.Reason,
                     )
                     PrimaryButton(
                         if (state.phase == UnlockPhase.Checking) "Checking…" else "Check",
                         enabled = state.phase == UnlockPhase.Reason && state.reason.isNotBlank(),
                     ) { onIntent(UnlockIntent.Check) }
-                    Caption(if (state.isPremium) "Unlimited with Pro" else if (state.freeLeft > 0) "1 free mindful unlock left today" else "Unlimited with Pro")
+                    if (state.loaded) {
+                        Caption(if (!state.isPremium && state.freeLeft > 0) "1 free mindful unlock left today" else "Unlimited with Pro")
+                    }
                     Caption("Your answer is checked by AI and not saved.")
                 }
                 UnlockPhase.Granted -> {

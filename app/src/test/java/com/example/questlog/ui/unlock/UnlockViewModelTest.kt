@@ -65,7 +65,7 @@ class UnlockViewModelTest {
         }
     }
 
-    private val insta = UnlockApp("com.insta", "Instagram", null)
+    private val insta = UnlockApp("com.insta", "Instagram")
 
     private fun TestScope.vm(
         judge: Judge,
@@ -199,5 +199,33 @@ class UnlockViewModelTest {
 
         assertEquals(UnlockPhase.Drifting, vm.uiState.value.phase)
         assertEquals(listOf("boredom"), unlocks.rows.map { it.category })
+    }
+
+    @Test
+    fun `nothing is loaded until the app list and quota arrive`() = runTest {
+        val vm = UnlockViewModel(
+            blocklistRepo = BlocklistRepository(Blocked("com.insta")),
+            installedApps = Apps("com.insta" to "Instagram"),
+            judge = Judge(Verdict.Unavailable),
+            unlocks = MindfulUnlockRepository(Unlocks()),
+            isPremium = { false },
+        )
+        assertEquals(false, vm.uiState.value.loaded)
+        advanceUntilIdle()
+        assertEquals(true, vm.uiState.value.loaded)
+    }
+
+    @Test
+    fun `no blocked app installed is an empty, loaded list`() = runTest {
+        val vm = UnlockViewModel(
+            blocklistRepo = BlocklistRepository(Blocked("com.notinstalled")),
+            installedApps = Apps("com.insta" to "Instagram"),
+            judge = Judge(Verdict.Unavailable),
+            unlocks = MindfulUnlockRepository(Unlocks()),
+            isPremium = { false },
+        )
+        advanceUntilIdle()
+        assertEquals(true, vm.uiState.value.loaded)
+        assertEquals(emptyList(), vm.uiState.value.apps)
     }
 }

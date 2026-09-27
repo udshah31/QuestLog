@@ -7,8 +7,9 @@ object MindfulUnlockRule {
     const val PURPOSEFUL_THRESHOLD = 0.7
     const val FREE_UNLOCKS_PER_DAY = 1
 
-    private val DRIFTING = setOf("boredom", "habit", "unclear")
+    /** Allow-list: an unexpected category (schema drift, empty) never earns grace. */
+    private val TASKS = setOf("message", "create", "lookup", "work")
 
     fun graceFor(purposeful: Double, category: String): Long =
-        if (purposeful >= PURPOSEFUL_THRESHOLD && category !in DRIFTING) GRACE_MS else 0L
+        if (purposeful >= PURPOSEFUL_THRESHOLD && category in TASKS) GRACE_MS else 0L
 }

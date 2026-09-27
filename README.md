@@ -186,8 +186,8 @@ on push to `main` — see [Deploy](#deploy).
   one over-budget day per 7 days (`StreakFreeze.COOLDOWN_DAYS`).
 - **Mindful Unlocks**: the Unlock screen sends the player's typed reason to the Cloudflare
   Worker in `proxy/` (TypeSafe key as the `TYPESAFE_API_KEY` Worker secret; `npm test`,
-  `npx wrangler deploy`). A purposeful answer (`MindfulUnlockRule`: Noul ≥ 0.7, not
-  boredom/habit/unclear) grants 5 min of grace, added to that app's allowance for today's
+  `npx wrangler deploy`). A purposeful answer (`MindfulUnlockRule`: Noul ≥ 0.7 and category
+  message/create/lookup/work) grants 5 min of grace, added to that app's allowance for today's
   reward only (never the streak). Free: 1 judged unlock/day; Pro unlimited. The app reads the
   Worker URL from `UNLOCK_PROXY_URL` (env / `keystore.properties` `unlockProxyUrl`); the
   placeholder makes every check "Couldn't check right now".

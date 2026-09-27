@@ -2,6 +2,7 @@ package com.example.questlog.unlock
 
 import android.content.Context
 import android.content.SharedPreferences
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -31,6 +32,10 @@ fun parseVerdict(json: String): Verdict = runCatching {
     Verdict.Judged(purposeful, c.content)
 }.getOrDefault(Verdict.Unavailable)
 
+/** The proxy rejects labels over 60 chars; truncate rather than fail forever for that app. */
+fun judgeRequestBody(appLabel: String, reason: String): String =
+    buildJsonObject { put("app", appLabel.take(60)); put("reason", reason) }.toString()
+
 /** Calls the Mindful Unlocks proxy. `open` so ViewModel tests can script verdicts. */
 open class IntentJudge(
     private val baseUrl: String,
@@ -39,7 +44,7 @@ open class IntentJudge(
     open suspend fun judge(appLabel: String, reason: String): Verdict {
         if (!baseUrl.startsWith("https://")) return Verdict.Unavailable
         return withContext(Dispatchers.IO) {
-            runCatching {
+            try {
                 val conn = URL("${baseUrl.trimEnd('/')}/judge").openConnection() as HttpURLConnection
                 try {
                     conn.requestMethod = "POST"
@@ -48,14 +53,18 @@ open class IntentJudge(
                     conn.doOutput = true
                     conn.setRequestProperty("Content-Type", "application/json")
                     conn.setRequestProperty("X-Install-Id", installId())
-                    val body = buildJsonObject { put("app", appLabel); put("reason", reason) }.toString()
+                    val body = judgeRequestBody(appLabel, reason)
                     conn.outputStream.use { it.write(body.toByteArray()) }
                     if (conn.responseCode != 200) Verdict.Unavailable
                     else parseVerdict(conn.inputStream.bufferedReader().use { it.readText() })
                 } finally {
                     conn.disconnect()
                 }
-            }.getOrDefault(Verdict.Unavailable)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                Verdict.Unavailable
+            }
         }
     }
 

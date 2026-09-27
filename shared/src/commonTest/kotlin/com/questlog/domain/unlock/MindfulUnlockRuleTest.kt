@@ -17,4 +17,8 @@ class MindfulUnlockRuleTest {
     }
 
     @Test fun `grace is five minutes`() = assertEquals(5 * 60_000L, GRACE_MS)
+
+    @Test fun `unknown or empty categories earn nothing`() {
+        for (c in listOf("banana", "", "MESSAGE")) assertEquals(0L, graceFor(0.99, c), c)
+    }
 }

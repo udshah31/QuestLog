@@ -1,6 +1,5 @@
 package com.example.questlog.ui.unlock
 
-import android.graphics.drawable.Drawable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.questlog.data.InstalledAppsProvider
@@ -19,7 +18,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class UnlockApp(val packageName: String, val label: String, val icon: Drawable?)
+data class UnlockApp(val packageName: String, val label: String)
 
 enum class UnlockPhase { Pick, Reason, Checking, Granted, Drifting, Unavailable }
 
@@ -30,6 +29,8 @@ data class UnlockUiState(
     val phase: UnlockPhase = UnlockPhase.Pick,
     val isPremium: Boolean = false,
     val usedToday: Int = 0,
+    /** False until the app list and today's quota have loaded once. */
+    val loaded: Boolean = false,
 ) {
     val freeLeft: Int get() = (MindfulUnlockRule.FREE_UNLOCKS_PER_DAY - usedToday).coerceAtLeast(0)
 }
@@ -73,8 +74,8 @@ class UnlockViewModel(
         val blocked = blocklistRepo.current().mapTo(mutableSetOf()) { it.packageName }
         val apps = installedApps.launchableApps()
             .filter { it.packageName in blocked }
-            .map { UnlockApp(it.packageName, it.label, it.icon) }
-        _uiState.update { it.copy(apps = apps, isPremium = isPremium(), usedToday = unlocks.countToday()) }
+            .map { UnlockApp(it.packageName, it.label) }
+        _uiState.update { it.copy(apps = apps, isPremium = isPremium(), usedToday = unlocks.countToday(), loaded = true) }
     }
 
     fun onIntent(intent: UnlockIntent) {

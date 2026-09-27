@@ -25,4 +25,10 @@ class IntentJudgeTest {
         val judge = IntentJudge("REPLACE_WITH_UNLOCK_PROXY_URL") { error("install id must not be read") }
         assertEquals(Verdict.Unavailable, judge.judge("Instagram", "reply to mum"))
     }
+
+    @Test fun `long app labels are truncated to what the proxy accepts`() {
+        val body = kotlinx.serialization.json.Json.parseToJsonElement(judgeRequestBody("A".repeat(90), "reply to mum"))
+        val app = (body as kotlinx.serialization.json.JsonObject)["app"].toString().trim('"')
+        assertEquals(60, app.length)
+    }
 }

@@ -55,4 +55,21 @@ describe('POST /judge', () => {
     const res = await worker.fetch(new Request('https://x/', { method: 'GET' }), env)
     expect(res.status).toBe(404)
   })
+
+  it('rejects oversized bodies before parsing them', async () => {
+    typesafe({})
+    const res = await worker.fetch(
+      new Request('https://x/judge', { method: 'POST', headers: { 'X-Install-Id': 'abc' }, body: 'x'.repeat(3000) }),
+      env,
+    )
+    expect(res.status).toBe(413)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('502s on a category or score outside the contract', async () => {
+    typesafe({ purposeful: { noul: 0.9 }, category: { choice: 'banana' } })
+    expect((await judge({ app: 'Instagram', reason: 'hi' })).status).toBe(502)
+    typesafe({ purposeful: { noul: 1.5 }, category: { choice: 'message' } })
+    expect((await judge({ app: 'Instagram', reason: 'hi' })).status).toBe(502)
+  })
 })

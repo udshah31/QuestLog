@@ -524,4 +524,32 @@ class CalculateDetoxRewardsUseCaseTest {
         assertEquals(0, currencyDao.balance.consecutiveDetoxDays)
         assertEquals("", currencyDao.balance.streakFreezeLastUsed)
     }
+
+    @Test
+    fun `mindful grace still applies after the app is unblocked later that day`() = runTest {
+        val tz = TimeZone.currentSystemDefault()
+        val noon = Clock.System.now().toLocalDateTime(tz).date.atTime(12, 0).toInstant(tz)
+
+        suspend fun savedAfterUnblock(grace: Map<String, Long>): Long {
+            val currencyDao = FakeCurrencyDao()
+            val repo = ScreenTimeRepository(
+                FakeScreenTimeDao(),
+                object : ScreenTimeTracker() {
+                    override suspend fun getUsageForPeriod(startMs: Long, endMs: Long) =
+                        listOf(AppUsage("com.insta", 10 * 60_000L))
+                    override fun isPermissionGranted() = true
+                },
+            )
+            val currencyRepo = CurrencyRepository(currencyDao)
+            // Tick 1: blocked. Tick 2: unblocked — it keeps counting for the rest of the day.
+            CalculateDetoxRewardsUseCase(repo, currencyRepo, blocked("com.insta"), clock = PinnedClock(noon))()
+            CalculateDetoxRewardsUseCase(repo, currencyRepo, { emptyList() }, graceToday = { grace }, clock = PinnedClock(noon))()
+            return currencyDao.balance.awardedSavedMsToday
+        }
+
+        assertEquals(
+            5 * 60_000L,
+            savedAfterUnblock(mapOf("com.insta" to 5 * 60_000L)) - savedAfterUnblock(emptyMap()),
+        )
+    }
 }

@@ -76,9 +76,9 @@ header `X-Install-Id: <uuid>`.
 object MindfulUnlockRule {
     const val GRACE_MS = 5 * 60_000L
     const val PURPOSEFUL_THRESHOLD = 0.7
-    private val DRIFTING = setOf("boredom", "habit", "unclear")
+    private val TASKS = setOf("message", "create", "lookup", "work") // allow-list
     fun graceFor(purposeful: Double, category: String): Long =
-        if (purposeful >= PURPOSEFUL_THRESHOLD && category !in DRIFTING) GRACE_MS else 0L
+        if (purposeful >= PURPOSEFUL_THRESHOLD && category in TASKS) GRACE_MS else 0L
     const val FREE_UNLOCKS_PER_DAY = 1
 }
 ```

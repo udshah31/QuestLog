@@ -54,7 +54,8 @@ class CalculateDetoxRewardsUseCase(
         val savedMs = screenTimeRepo.fetchAndPersistToday(
             flaggedPackages = blocked.mapTo(mutableSetOf()) { it.packageName },
             startOfDayMs = startOfDay,
-            allowances = blocked.associate { it.packageName to it.dailyLimitMs + (grace[it.packageName] ?: 0L) },
+            // grace keys too: an app unblocked after its unlock still counts today, and keeps its grace
+            allowances = grace + blocked.associate { it.packageName to it.dailyLimitMs + (grace[it.packageName] ?: 0L) },
         )
 
         // 2. Only reward the *increase* over what today already paid out. Saved time can
