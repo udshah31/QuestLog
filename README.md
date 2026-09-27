@@ -24,7 +24,7 @@ QuestLog
 
 The `app` UI is two screens — **Today** (streak ring, level, quest ledger, realm
 summary) and **Realm** (the build grid) — plus **Distractions** (the blocklist editor,
-reached from the Today gear) and the Pro paywall dialog, hosted by `ui/QuestLogRoot.kt`
+reached from the Today gear) and the Pro paywall screen, hosted by `ui/QuestLogRoot.kt`
 with no navigation library. A `QuestColors` token system drives a `QuestLogTheme` with a
 single charcoal-on-paper palette and one red accent ("Palette #1"); the light/dark
 plumbing is kept but both paths resolve to it. The *Instrument Serif* display face is
@@ -181,6 +181,11 @@ on push to `main` — see [Deploy](#deploy).
 - **Pro perks** (active while `BillingManager.isPremium`): a 2× multiplier on detox-time
   XP + gold (stacks with the streak multiplier), and a Streak Freeze Shield that protects
   one over-budget day per 7 days (`StreakFreeze.COOLDOWN_DAYS`).
+- **Pro paywall**: price and free-trial text come from the current RevenueCat Offering
+  (`BillingManager.loadProOffer`, monthly package else first). The first time a free player's
+  streak reaches 7 days the paywall opens once with trial copy (`MilestoneOfferStore`,
+  SharedPreferences `questlog_prefs`). With no Offering, debug builds offer a demo unlock;
+  release builds disable the button.
 - **Usage access**: the app needs the `PACKAGE_USAGE_STATS` special permission,
   granted by the user in *Settings → Apps → Special app access → Usage access*.
 - **RevenueCat**: `BuildConfig.REVENUECAT_API_KEY` falls back to a placeholder; a real key

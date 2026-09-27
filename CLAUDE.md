@@ -27,7 +27,7 @@ See `README.md` for architecture.
 - Use-case / repo tests use hand-written fake DAOs that model real Room semantics (e.g. `UPDATE ... WHERE id = 1` is a no-op when the row is absent). Adding a `@Dao` method means updating every fake: `FakeScreenTimeDao` in `CalculateDetoxRewardsUseCaseTest` (shared; also used by `EvaluateDailyQuestsUseCaseTest`), the fakes in `ScreenTimeRepositoryTest`, and `app`'s `DashboardViewModelTest`.
 - Real Room DB tests run on `desktop`: `Room.inMemoryDatabaseBuilder<QuestLogDatabase>().setDriver(BundledSQLiteDriver())` (needs `@ConstructedBy` on `@Database`, already present).
 - Migration tests: `MigrationTestHelper` as a plain JVM test in `desktopTest`; schema dir is passed via the `questlog.schemasDir` system property set in `shared/build.gradle.kts`.
-- `ScreenTimeRepository`, `DetoxMonitorFlow`, and `ScreenTimeTracker` (`expect` + both `actual`s) are `open` so tests can stub them — a real `DetoxMonitorFlow` in a `runTest` + `advanceUntilIdle()` hangs (infinite `while(true){ delay() }`).
+- `ScreenTimeRepository`, `DetoxMonitorFlow`, and `ScreenTimeTracker` (`expect` + both `actual`s) are `open` so tests can stub them; `app`'s `BillingManager` is `open` too (`FakeBilling` in `DashboardViewModelTest` scripts offers and purchase callbacks) — a real `DetoxMonitorFlow` in a `runTest` + `advanceUntilIdle()` hangs (infinite `while(true){ delay() }`).
 - `app` ViewModel tests: `@OptIn(ExperimentalCoroutinesApi::class)` on the class + `Dispatchers.setMain(StandardTestDispatcher())` before `runTest` (see `DashboardViewModelTest`, `BlocklistViewModelTest`).
 - Daily quests rotate: 3 of an 8-quest pool are active per day via `questsForDay(date)` (sliding window, `epochDays mod 8`). Quest tests derive the test date from the window they need (`dateWithWindow(...)` helper in `EvaluateDailyQuestsUseCaseTest`) rather than hardcoding one. `DailyQuestRepository` takes an injectable `clock`/`timeZone`.
 - `BlocklistDaoTest` builds the in-memory DB with `.addCallback(questLogSeedCallback)` to exercise the fresh-install seed.
@@ -52,3 +52,6 @@ See `README.md` for architecture.
   through a `suspend () -> List<BlockedApp>` supplier; per-app `dailyLimitMs` is an
   allowance — only overage counts (`DetoxBudget.chargeableMs`).
 - The blocklist app-list needs `<queries>` in `app/src/main/AndroidManifest.xml` — `PackageManager.queryIntentActivities` is filtered to near-nothing on API 30+ without it.
+- `BillingManager.isPremium == false` means "unknown" until `entitlementsKnown` is true —
+  gate anything that treats the player as free (the 7-day milestone paywall) on it.
+  The milestone flag lives in SharedPreferences (`MilestoneOfferStore`), not Room.

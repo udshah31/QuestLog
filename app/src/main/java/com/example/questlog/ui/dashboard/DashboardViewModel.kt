@@ -1,9 +1,13 @@
 package com.example.questlog.ui.dashboard
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.questlog.billing.BillingManager
+import com.example.questlog.billing.MilestoneOfferStore
+import com.example.questlog.billing.ProOffer
 import com.questlog.data.repository.DailyQuestRepository
+import com.revenuecat.purchases.PurchasesErrorCode
 import com.questlog.domain.model.CityTile
 import com.questlog.domain.model.DailyQuest
 import com.questlog.domain.model.PlayerStats
@@ -12,6 +16,7 @@ import com.questlog.domain.usecase.DetoxMonitorFlow
 import com.questlog.domain.usecase.GetDashboardStatsUseCase
 import com.questlog.domain.usecase.PurchaseBuildingUseCase
 import com.questlog.domain.usecase.PurchaseResult
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +24,8 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+enum class PaywallReason { Manual, Milestone }
 
 data class DashboardUiState(
     val isLoading: Boolean = true,
@@ -38,6 +45,10 @@ data class DashboardUiState(
     val blockedAppCount: Int = 0,
     val isPremium: Boolean = false,
     val showPaywall: Boolean = false,
+    val paywallReason: PaywallReason = PaywallReason.Manual,
+    val proOffer: ProOffer? = null,
+    val offerLoading: Boolean = false,
+    val purchasing: Boolean = false,
     val snackbarMessage: String? = null,
 )
 
@@ -47,6 +58,8 @@ sealed interface DashboardIntent {
     object OpenPaywall : DashboardIntent
     object DismissPaywall : DashboardIntent
     object UnlockProDemo : DashboardIntent
+    data class BuyPro(val activity: Activity) : DashboardIntent
+    data class TodayVisible(val visible: Boolean) : DashboardIntent
     object DismissSnackbar : DashboardIntent
 }
 
@@ -57,7 +70,15 @@ class DashboardViewModel(
     private val purchaseBuilding: PurchaseBuildingUseCase,
     private val dailyQuestRepo: DailyQuestRepository,
     private val billingManager: BillingManager,
+    private val milestoneStore: MilestoneOfferStore,
 ) : ViewModel() {
+
+    companion object {
+        const val MILESTONE_DAYS = 7
+    }
+
+    private var todayVisible = true
+    private var offerJob: Job? = null
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
@@ -69,7 +90,8 @@ class DashboardViewModel(
                 getDashboardStats(),
                 dailyQuestRepo.observeToday(),
                 billingManager.isPremium,
-            ) { dashboardState, quests, isPremium ->
+                billingManager.entitlementsKnown,
+            ) { dashboardState, quests, isPremium, entitlementsKnown ->
                 _uiState.update { current ->
                     current.copy(
                         isLoading = false,
@@ -80,6 +102,7 @@ class DashboardViewModel(
                         isPremium = isPremium,
                     )
                 }
+                maybeOfferMilestone(dashboardState.stats.consecutiveDetoxDays, isPremium, entitlementsKnown)
             }.collect {}
         }
 
@@ -122,9 +145,7 @@ class DashboardViewModel(
                                 it.copy(snackbarMessage = "Not enough gold. Reclaim more time to earn it.")
                             }
                         }
-                        is PurchaseResult.PremiumRequired -> {
-                            _uiState.update { it.copy(showPaywall = true) }
-                        }
+                        is PurchaseResult.PremiumRequired -> openPaywall(PaywallReason.Manual)
                         is PurchaseResult.AlreadyOwned -> {
                             _uiState.update {
                                 it.copy(snackbarMessage = "${tile.displayName} is already built.")
@@ -134,12 +155,49 @@ class DashboardViewModel(
                 }
             }
 
-            is DashboardIntent.OpenPaywall -> {
-                _uiState.update { it.copy(showPaywall = true) }
-            }
+            is DashboardIntent.OpenPaywall -> openPaywall(PaywallReason.Manual)
 
             is DashboardIntent.DismissPaywall -> {
                 _uiState.update { it.copy(showPaywall = false) }
+            }
+
+            is DashboardIntent.BuyPro -> {
+                val state = _uiState.value
+                val offer = state.proOffer ?: return
+                if (state.purchasing) return // double-tap guard
+                _uiState.update { it.copy(purchasing = true) }
+                billingManager.purchasePackage(
+                    activity = intent.activity,
+                    pkg = offer.pkg,
+                    onSuccess = {
+                        // Entitlement reaches isPremium via BillingManager's listener.
+                        _uiState.update {
+                            it.copy(purchasing = false, showPaywall = false, snackbarMessage = "Welcome to QuestLog Pro.")
+                        }
+                    },
+                    onError = { error, userCancelled ->
+                        _uiState.update {
+                            when {
+                                userCancelled -> it.copy(purchasing = false)
+                                // Play accepted it; Pro arrives via the listener once the payment clears.
+                                error.code == PurchasesErrorCode.PaymentPendingError -> it.copy(
+                                    purchasing = false,
+                                    showPaywall = false,
+                                    snackbarMessage = "Payment pending. Pro unlocks once it clears.",
+                                )
+                                else -> it.copy(purchasing = false, snackbarMessage = "Purchase didn't go through.")
+                            }
+                        }
+                    },
+                )
+            }
+
+            is DashboardIntent.TodayVisible -> {
+                todayVisible = intent.visible
+                if (intent.visible) {
+                    val s = _uiState.value
+                    maybeOfferMilestone(s.stats.consecutiveDetoxDays, s.isPremium, billingManager.entitlementsKnown.value)
+                }
             }
 
             is DashboardIntent.UnlockProDemo -> {
@@ -156,6 +214,29 @@ class DashboardViewModel(
             is DashboardIntent.DismissSnackbar -> {
                 _uiState.update { it.copy(snackbarMessage = null) }
             }
+        }
+    }
+
+    /** First 7-day streak for a known-free player: open the trial paywall, once ever. */
+    private fun maybeOfferMilestone(streak: Int, isPremium: Boolean, entitlementsKnown: Boolean) {
+        if (streak < MILESTONE_DAYS || isPremium || !entitlementsKnown || !todayVisible) return
+        // Don't hijack a paywall the player opened themselves; try again on a later emission.
+        if (_uiState.value.showPaywall || milestoneStore.shown) return
+        openPaywall(PaywallReason.Milestone) // marks the milestone shown
+    }
+
+    private fun openPaywall(reason: PaywallReason) {
+        // Seeing any paywall at 7+ days consumes the milestone — no second one after "Maybe later".
+        if (_uiState.value.stats.consecutiveDetoxDays >= MILESTONE_DAYS && !milestoneStore.shown) {
+            milestoneStore.markShown()
+        }
+        // purchasing = false: a purchase whose callback never came must not lock the button forever.
+        _uiState.update { it.copy(showPaywall = true, paywallReason = reason, offerLoading = true, purchasing = false) }
+        offerJob?.cancel() // only the latest open's fetch lands
+        offerJob = viewModelScope.launch {
+            val offer = billingManager.loadProOffer()
+            // A failed re-fetch keeps the offer that already loaded.
+            _uiState.update { it.copy(proOffer = offer ?: it.proOffer, offerLoading = false) }
         }
     }
 }
