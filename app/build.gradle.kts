@@ -21,6 +21,9 @@ fun signingProp(env: String, key: String): String? =
 // un-configured builds still compile.
 val revenueCatKey: String? = signingProp("REVENUECAT_API_KEY", "revenueCatKey")
 
+// Mindful Unlocks proxy (Cloudflare Worker). Placeholder = every judgment is "unavailable".
+val unlockProxyUrl: String? = signingProp("UNLOCK_PROXY_URL", "unlockProxyUrl")
+
 fun buildConfigStringLiteral(value: String): String =
     "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
@@ -51,6 +54,11 @@ android {
         versionCode = resolvedVersionCode
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField(
+            "String",
+            "UNLOCK_PROXY_URL",
+            buildConfigStringLiteral(unlockProxyUrl ?: "REPLACE_WITH_UNLOCK_PROXY_URL"),
+        )
     }
 
     signingConfigs {
@@ -137,6 +145,7 @@ dependencies {
 
     // ── RevenueCat ───────────────────────────────────────────────────────────
     implementation(libs.revenuecat.purchases)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.revenuecat.purchases.ui)
 
     // ── Testing ───────────────────────────────────────────────────────────────
