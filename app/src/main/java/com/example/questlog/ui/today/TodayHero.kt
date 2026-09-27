@@ -3,6 +3,7 @@ package com.example.questlog.ui.today
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,7 +34,7 @@ import com.questlog.domain.model.PlayerStats
 import com.questlog.util.DetoxBudget
 
 @Composable
-fun TodayHero(stats: PlayerStats, modifier: Modifier = Modifier) {
+fun TodayHero(stats: PlayerStats, onOpenProgress: () -> Unit, modifier: Modifier = Modifier) {
     val c = QuestLogTheme.colors
     val reduce = reducedMotion()
 
@@ -62,7 +63,9 @@ fun TodayHero(stats: PlayerStats, modifier: Modifier = Modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             ProgressRing(
                 fraction = ringFraction(stats.todaySavedMs, DetoxBudget.DEFAULT_DAILY_BUDGET_MS),
-                modifier = Modifier.clearAndSetSemantics { contentDescription = ringDescription },
+                modifier = Modifier
+                    .clickable(onClickLabel = "Open progress", onClick = onOpenProgress)
+                    .clearAndSetSemantics { contentDescription = ringDescription },
             ) {
                 if (stats.consecutiveDetoxDays == 0) {
                     Text("—", style = QuestType.serifNumeral, color = c.inkMuted)
@@ -117,7 +120,7 @@ private fun HeroPreview() {
                 .fillMaxWidth()
                 .padding(16.dp),
         ) {
-            TodayHero(fakeStats())
+            TodayHero(fakeStats(), onOpenProgress = {})
             Spacer(Modifier.height(16.dp))
             LevelBar(fakeStats())
         }
