@@ -7,10 +7,15 @@ import com.revenuecat.purchases.Purchases
 import com.revenuecat.purchases.PurchasesError
 import com.revenuecat.purchases.interfaces.ReceiveCustomerInfoCallback
 import com.revenuecat.purchases.interfaces.UpdatedCustomerInfoListener
+import com.revenuecat.purchases.awaitOfferings
 import com.revenuecat.purchases.purchaseWith
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+
+/** The Pro package to sell, with display strings resolved from the store product. */
+data class ProOffer(val pkg: Package, val priceText: String, val trialText: String?)
 
 class BillingManager {
 
@@ -20,6 +25,11 @@ class BillingManager {
 
     private val _isPremium = MutableStateFlow(false)
     val isPremium: StateFlow<Boolean> = _isPremium.asStateFlow()
+
+    // False until CustomerInfo arrives: isPremium=false before then means "unknown",
+    // not "free" — the milestone trigger must not fire on it.
+    private val _entitlementsKnown = MutableStateFlow(false)
+    val entitlementsKnown: StateFlow<Boolean> = _entitlementsKnown.asStateFlow()
 
     private val _customerInfo = MutableStateFlow<CustomerInfo?>(null)
     val customerInfo: StateFlow<CustomerInfo?> = _customerInfo.asStateFlow()
@@ -49,6 +59,24 @@ class BillingManager {
         _customerInfo.value = customerInfo
         val hasPro = customerInfo.entitlements[ENTITLEMENT_PRO]?.isActive == true
         _isPremium.value = hasPro
+        _entitlementsKnown.value = true
+    }
+
+    /** The current Offering's monthly (else first) package, or null on any failure. */
+    suspend fun loadProOffer(): ProOffer? = try {
+        val offering = Purchases.sharedInstance.awaitOfferings().current
+        (offering?.monthly ?: offering?.availablePackages?.firstOrNull())?.let { pkg ->
+            val product = pkg.product
+            val price = product.price.formatted
+            val period = product.period?.let { periodLabel(it.value, it.unit) }
+            val trial = product.defaultOption?.freePhase?.billingPeriod
+                ?.let { trialLabel(it.value, it.unit) }
+            ProOffer(pkg, if (period != null) "$price / $period" else price, trial)
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        null // not configured, offline, or no Offering set up
     }
 
     fun purchasePackage(
@@ -70,5 +98,6 @@ class BillingManager {
     /** Testing / Debug mock toggle for hackathon demo without real payment */
     fun setDebugPremium(enabled: Boolean) {
         _isPremium.value = enabled
+        _entitlementsKnown.value = true
     }
 }
