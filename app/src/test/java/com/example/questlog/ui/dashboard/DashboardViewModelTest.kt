@@ -1,6 +1,7 @@
 package com.example.questlog.ui.dashboard
 
 import com.example.questlog.billing.BillingManager
+import com.example.questlog.billing.MilestoneOfferStore
 import com.questlog.data.local.dao.CurrencyDao
 import com.questlog.data.local.dao.InventoryDao
 import com.questlog.data.local.dao.QuestDao
@@ -39,6 +40,13 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import org.mockito.kotlin.mock
+
+class FakeMilestoneStore(var shownFlag: Boolean = false) : MilestoneOfferStore(mock()) {
+    var markCount = 0
+    override val shown: Boolean get() = shownFlag
+    override fun markShown() { shownFlag = true; markCount++ }
+}
 
 class FakeScreenTimeDao : ScreenTimeDao {
     val records = mutableListOf<ScreenTimeRecord>()
@@ -156,6 +164,7 @@ class DashboardViewModelTest {
             purchaseBuilding = purchaseBuilding,
             dailyQuestRepo = DailyQuestRepository(FakeQuestDao()),
             billingManager = billingManager,
+            milestoneStore = FakeMilestoneStore(),
         )
 
         advanceUntilIdle()
@@ -184,6 +193,7 @@ class DashboardViewModelTest {
             purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),
             dailyQuestRepo = DailyQuestRepository(FakeQuestDao()),
             billingManager = BillingManager(),
+            milestoneStore = FakeMilestoneStore(),
         )
 
         advanceUntilIdle()
@@ -211,6 +221,7 @@ class DashboardViewModelTest {
             purchaseBuilding = PurchaseBuildingUseCase(CurrencyRepository(currencyDao), InventoryRepository(inventoryDao)),
             dailyQuestRepo = DailyQuestRepository(FakeQuestDao()),
             billingManager = BillingManager(),
+            milestoneStore = FakeMilestoneStore(),
         )
 
         advanceUntilIdle()
@@ -244,10 +255,108 @@ class DashboardViewModelTest {
             purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),
             dailyQuestRepo = DailyQuestRepository(FakeQuestDao()),
             billingManager = BillingManager(),
+            milestoneStore = FakeMilestoneStore(),
         )
 
         advanceUntilIdle()
 
         assertEquals(1, ticks.subscriptionCount.value)
+    }
+
+    private fun milestoneVm(
+        streak: Int,
+        billing: BillingManager = BillingManager().apply { setDebugPremium(false) },
+        store: FakeMilestoneStore = FakeMilestoneStore(),
+    ): DashboardViewModel {
+        val currencyDao = FakeCurrencyDao().apply {
+            balance = balance.copy(consecutiveDetoxDays = streak); flow.value = balance
+        }
+        val currencyRepo = CurrencyRepository(currencyDao)
+        val inventoryRepo = InventoryRepository(FakeInventoryDao())
+        return DashboardViewModel(
+            getDashboardStats = GetDashboardStatsUseCase(currencyRepo, inventoryRepo, emptyBlocklistRepo()),
+            calculateDetoxRewards = CalculateDetoxRewardsUseCase(
+                ScreenTimeRepository(FakeScreenTimeDao(), ScreenTimeTracker()), currencyRepo, { emptyList() },
+            ),
+            detoxMonitor = silentMonitor(),
+            purchaseBuilding = PurchaseBuildingUseCase(currencyRepo, inventoryRepo),
+            dailyQuestRepo = DailyQuestRepository(FakeQuestDao()),
+            billingManager = billing,
+            milestoneStore = store,
+        )
+    }
+
+    @Test
+    fun `seven-day streak opens the milestone paywall once`() = runTest {
+        val store = FakeMilestoneStore()
+        val vm = milestoneVm(streak = 7, store = store)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.showPaywall)
+        assertEquals(PaywallReason.Milestone, vm.uiState.value.paywallReason)
+        assertEquals(1, store.markCount)
+    }
+
+    @Test
+    fun `six-day streak does not open the paywall`() = runTest {
+        val vm = milestoneVm(streak = 6)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.showPaywall)
+    }
+
+    @Test
+    fun `pro players never see the milestone paywall`() = runTest {
+        val store = FakeMilestoneStore()
+        val vm = milestoneVm(streak = 7, billing = BillingManager().apply { setDebugPremium(true) }, store = store)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.showPaywall)
+        assertEquals(0, store.markCount)
+    }
+
+    @Test
+    fun `already-shown milestone is not shown again`() = runTest {
+        val vm = milestoneVm(streak = 12, store = FakeMilestoneStore(shownFlag = true))
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.showPaywall)
+    }
+
+    @Test
+    fun `milestone waits until entitlements are known`() = runTest {
+        val billing = BillingManager() // entitlementsKnown = false: CustomerInfo not in yet
+        val store = FakeMilestoneStore()
+        val vm = milestoneVm(streak = 7, billing = billing, store = store)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.showPaywall)
+        assertEquals(0, store.markCount)
+
+        billing.setDebugPremium(false) // CustomerInfo arrives: not Pro
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.showPaywall)
+        assertEquals(1, store.markCount)
+    }
+
+    @Test
+    fun `manual paywall is not hijacked and does not burn the milestone`() = runTest {
+        val billing = BillingManager()
+        val store = FakeMilestoneStore()
+        val vm = milestoneVm(streak = 7, billing = billing, store = store)
+        advanceUntilIdle()
+        vm.onIntent(DashboardIntent.OpenPaywall)
+        billing.setDebugPremium(false)
+        advanceUntilIdle()
+        assertEquals(PaywallReason.Manual, vm.uiState.value.paywallReason)
+        assertEquals(0, store.markCount)
+    }
+
+    @Test
+    fun `opening the paywall manually loads the offer and settles`() = runTest {
+        val vm = milestoneVm(streak = 0)
+        advanceUntilIdle()
+        vm.onIntent(DashboardIntent.OpenPaywall)
+        advanceUntilIdle()
+        val s = vm.uiState.value
+        assertTrue(s.showPaywall)
+        assertEquals(PaywallReason.Manual, s.paywallReason)
+        assertFalse(s.offerLoading)
+        assertEquals(null, s.proOffer) // Purchases isn't configured in unit tests
     }
 }

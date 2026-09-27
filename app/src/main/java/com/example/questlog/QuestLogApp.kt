@@ -1,7 +1,9 @@
 package com.example.questlog
 
 import android.app.Application
+import android.content.Context
 import com.example.questlog.billing.BillingManager
+import com.example.questlog.billing.MilestoneOfferStore
 import com.example.questlog.data.InstalledAppsProvider
 import com.example.questlog.data.PackageManagerAppsProvider
 import com.example.questlog.ui.dashboard.DashboardViewModel
@@ -20,7 +22,8 @@ val appModule = module {
     single { BillingManager() }
     single<PremiumStatusProvider> { PremiumStatusProvider { get<BillingManager>().isPremium.value } }
     single<InstalledAppsProvider> { PackageManagerAppsProvider(get()) }
-    viewModel { DashboardViewModel(get(), get(), get(), get(), get(), get()) }
+    single { MilestoneOfferStore(androidContext().getSharedPreferences(MilestoneOfferStore.PREFS, Context.MODE_PRIVATE)) }
+    viewModel { DashboardViewModel(get(), get(), get(), get(), get(), get(), get()) }
     viewModel {
         com.example.questlog.ui.blocklist.BlocklistViewModel(
             blocklistRepo = get(),

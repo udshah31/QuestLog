@@ -3,6 +3,8 @@ package com.example.questlog.ui.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.questlog.billing.BillingManager
+import com.example.questlog.billing.MilestoneOfferStore
+import com.example.questlog.billing.ProOffer
 import com.questlog.data.repository.DailyQuestRepository
 import com.questlog.domain.model.CityTile
 import com.questlog.domain.model.DailyQuest
@@ -19,6 +21,8 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+enum class PaywallReason { Manual, Milestone }
 
 data class DashboardUiState(
     val isLoading: Boolean = true,
@@ -38,6 +42,10 @@ data class DashboardUiState(
     val blockedAppCount: Int = 0,
     val isPremium: Boolean = false,
     val showPaywall: Boolean = false,
+    val paywallReason: PaywallReason = PaywallReason.Manual,
+    val proOffer: ProOffer? = null,
+    val offerLoading: Boolean = false,
+    val purchasing: Boolean = false,
     val snackbarMessage: String? = null,
 )
 
@@ -57,7 +65,12 @@ class DashboardViewModel(
     private val purchaseBuilding: PurchaseBuildingUseCase,
     private val dailyQuestRepo: DailyQuestRepository,
     private val billingManager: BillingManager,
+    private val milestoneStore: MilestoneOfferStore,
 ) : ViewModel() {
+
+    companion object {
+        const val MILESTONE_DAYS = 7
+    }
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
@@ -69,7 +82,8 @@ class DashboardViewModel(
                 getDashboardStats(),
                 dailyQuestRepo.observeToday(),
                 billingManager.isPremium,
-            ) { dashboardState, quests, isPremium ->
+                billingManager.entitlementsKnown,
+            ) { dashboardState, quests, isPremium, entitlementsKnown ->
                 _uiState.update { current ->
                     current.copy(
                         isLoading = false,
@@ -80,6 +94,7 @@ class DashboardViewModel(
                         isPremium = isPremium,
                     )
                 }
+                maybeOfferMilestone(dashboardState.stats.consecutiveDetoxDays, isPremium, entitlementsKnown)
             }.collect {}
         }
 
@@ -122,9 +137,7 @@ class DashboardViewModel(
                                 it.copy(snackbarMessage = "Not enough gold. Reclaim more time to earn it.")
                             }
                         }
-                        is PurchaseResult.PremiumRequired -> {
-                            _uiState.update { it.copy(showPaywall = true) }
-                        }
+                        is PurchaseResult.PremiumRequired -> openPaywall(PaywallReason.Manual)
                         is PurchaseResult.AlreadyOwned -> {
                             _uiState.update {
                                 it.copy(snackbarMessage = "${tile.displayName} is already built.")
@@ -134,9 +147,7 @@ class DashboardViewModel(
                 }
             }
 
-            is DashboardIntent.OpenPaywall -> {
-                _uiState.update { it.copy(showPaywall = true) }
-            }
+            is DashboardIntent.OpenPaywall -> openPaywall(PaywallReason.Manual)
 
             is DashboardIntent.DismissPaywall -> {
                 _uiState.update { it.copy(showPaywall = false) }
@@ -156,6 +167,23 @@ class DashboardViewModel(
             is DashboardIntent.DismissSnackbar -> {
                 _uiState.update { it.copy(snackbarMessage = null) }
             }
+        }
+    }
+
+    /** First 7-day streak for a known-free player: open the trial paywall, once ever. */
+    private fun maybeOfferMilestone(streak: Int, isPremium: Boolean, entitlementsKnown: Boolean) {
+        if (streak < MILESTONE_DAYS || isPremium || !entitlementsKnown) return
+        // Don't hijack a paywall the player opened themselves; try again on a later emission.
+        if (_uiState.value.showPaywall || milestoneStore.shown) return
+        milestoneStore.markShown()
+        openPaywall(PaywallReason.Milestone)
+    }
+
+    private fun openPaywall(reason: PaywallReason) {
+        _uiState.update { it.copy(showPaywall = true, paywallReason = reason, offerLoading = true) }
+        viewModelScope.launch {
+            val offer = billingManager.loadProOffer()
+            _uiState.update { it.copy(proOffer = offer, offerLoading = false) }
         }
     }
 }
