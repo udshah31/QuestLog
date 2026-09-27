@@ -13,6 +13,8 @@ import com.questlog.domain.model.ProgressStats
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -65,6 +67,7 @@ class GetProgressStatsUseCaseTest {
             blocklistRepo = BlocklistRepository(TwoBlocked()),
             clock = clock,
             timeZone = TimeZone.UTC,
+            dates = kotlinx.coroutines.flow.flowOf(today),
         )().first()
     }
 
@@ -106,5 +109,31 @@ class GetProgressStatsUseCaseTest {
         assertEquals(7, s.questsCleared)
         assertEquals(150L, s.xp)
         assertEquals(today, s.last7Days.last().date)
+    }
+
+    @Test
+    fun `an open screen rolls its week over at midnight`() = runTest {
+        val currencyDao = FakeCurrencyDao().apply {
+            balance = balance.copy(awardedSavedMsToday = 5 * 60_000L); flow.value = balance
+        }
+        val days = MutableStateFlow(LocalDate(2026, 9, 27))
+        val useCase = GetProgressStatsUseCase(
+            currencyRepo = CurrencyRepository(currencyDao),
+            dailySavedRepo = DailySavedRepository(HistoryDao(listOf(DailySaved("2026-09-27", 40 * 60_000L)))),
+            questDao = CountQuestDao(0),
+            blocklistRepo = BlocklistRepository(TwoBlocked()),
+            dates = days,
+        )
+        val seen = mutableListOf<ProgressStats>()
+        backgroundScope.launch { useCase().collect { seen += it } }
+        runCurrent()
+        assertEquals(LocalDate(2026, 9, 27), seen.last().last7Days.last().date)
+
+        days.value = LocalDate(2026, 9, 28) // midnight passes while collecting
+        runCurrent()
+
+        val week = seen.last().last7Days
+        assertEquals(LocalDate(2026, 9, 28), week.last().date)
+        assertEquals(40 * 60_000L, week[5].savedMs, "yesterday's finalised row now shows")
     }
 }

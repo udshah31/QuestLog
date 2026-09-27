@@ -43,6 +43,8 @@ class ProgressViewModelTest {
                 dailySavedRepo = DailySavedRepository(NoHistory()),
                 questDao = FakeQuestDao(),
                 blocklistRepo = BlocklistRepository(com.example.questlog.ui.dashboard.FakeBlocklistDao()),
+                // a real midnight ticker would keep advanceUntilIdle() looping on its delay()
+                dates = kotlinx.coroutines.flow.flowOf(kotlinx.datetime.LocalDate(2026, 9, 27)),
             ),
         )
         assertTrue(vm.uiState.value.isLoading)

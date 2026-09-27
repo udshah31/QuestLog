@@ -6,12 +6,18 @@ import com.questlog.data.repository.CurrencyRepository
 import com.questlog.data.repository.DailySavedRepository
 import com.questlog.domain.model.DaySaved
 import com.questlog.domain.model.ProgressStats
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
@@ -23,9 +29,13 @@ class GetProgressStatsUseCase(
     private val blocklistRepo: BlocklistRepository,
     private val clock: Clock = Clock.System,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    /** The local date, re-emitted at each midnight so an open screen rolls its week over. */
+    private val dates: Flow<LocalDate> = localDates(clock, timeZone),
 ) {
-    operator fun invoke(): Flow<ProgressStats> {
-        val today = clock.now().toLocalDateTime(timeZone).date
+    @OptIn(ExperimentalCoroutinesApi::class)
+    operator fun invoke(): Flow<ProgressStats> = dates.distinctUntilChanged().flatMapLatest { today -> week(today) }
+
+    private fun week(today: LocalDate): Flow<ProgressStats> {
         val windowStart = today.minus(6, DateTimeUnit.DAY)
         return combine(
             currencyRepo.observePlayerStats(),
@@ -55,5 +65,19 @@ class GetProgressStatsUseCase(
                 last7Days = week,
             )
         }
+    }
+}
+
+/**
+ * Emits today's local date now and again just after each local midnight.
+ * ponytail: a timezone change mid-day is picked up at the next midnight tick, not instantly.
+ */
+fun localDates(clock: Clock, timeZone: TimeZone): Flow<LocalDate> = flow {
+    while (true) {
+        val now = clock.now()
+        val today = now.toLocalDateTime(timeZone).date
+        emit(today)
+        val nextMidnight = today.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone)
+        delay((nextMidnight - now).inWholeMilliseconds + 1_000L)
     }
 }
