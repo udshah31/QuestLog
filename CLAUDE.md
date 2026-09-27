@@ -52,3 +52,6 @@ See `README.md` for architecture.
   through a `suspend () -> List<BlockedApp>` supplier; per-app `dailyLimitMs` is an
   allowance — only overage counts (`DetoxBudget.chargeableMs`).
 - The blocklist app-list needs `<queries>` in `app/src/main/AndroidManifest.xml` — `PackageManager.queryIntentActivities` is filtered to near-nothing on API 30+ without it.
+- `BillingManager.isPremium == false` means "unknown" until `entitlementsKnown` is true —
+  gate anything that treats the player as free (the 7-day milestone paywall) on it.
+  The milestone flag lives in SharedPreferences (`MilestoneOfferStore`), not Room.

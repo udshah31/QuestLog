@@ -88,6 +88,9 @@ val purchasing: Boolean = false,
   `store.markShown()` and open the paywall with `reason = Milestone`.
   - `>= 7`, not `== 7`: a player already past 7 when this ships sees it once.
   - Marked on *show*, not on dismiss — a crash or back-press never re-nags.
+  - Also requires `BillingManager.entitlementsKnown` (CustomerInfo arrived), so a Pro user
+    on a cold start isn't shown a trial.
+  - Skipped while a paywall is already open (manual); retried on a later emission.
   - The check lives in the collector, which only runs with real stats — never the default
     zero state.
 - **Opening the paywall** (both reasons) launches `loadProOffer()` and stores the result in
@@ -104,9 +107,11 @@ val purchasing: Boolean = false,
 
 ### 4. `PaywallScreen`
 
-New params: `reason: PaywallReason`, `offer: ProOffer?`, `purchasing: Boolean`,
+New params: `reason: PaywallReason`, `priceText: String?`, `trialText: String?`,
+`offerLoading: Boolean`, `purchasing: Boolean`, `demoAvailable: Boolean` (strings, not
+`ProOffer`, so previews need no `Package`),
 `onBuy: () -> Unit` (caller resolves the Activity from `LocalContext`), plus the existing
-`onDismiss` and `onUnlockPro` (demo).
+`onDismiss` and `onUnlockDemo` (renamed from `onUnlockPro`).
 
 | Case | Eyebrow / headline | Sub-line |
 |---|---|---|
@@ -120,6 +125,7 @@ Button:
 |---|---|---|
 | offer, trial | "Start free trial" | `onBuy` |
 | offer, no trial | "Unlock — {priceText}" | `onBuy` |
+| no offer, loading | "Loading price…" (disabled) | — |
 | no offer, debug | "Unlock — demo" | `onUnlockPro` |
 | no offer, release | "Pro unavailable right now" (disabled) | — |
 | `purchasing` | same label, disabled | — |
