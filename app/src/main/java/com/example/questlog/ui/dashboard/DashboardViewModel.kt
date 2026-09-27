@@ -7,6 +7,7 @@ import com.example.questlog.billing.BillingManager
 import com.example.questlog.billing.MilestoneOfferStore
 import com.example.questlog.billing.ProOffer
 import com.questlog.data.repository.DailyQuestRepository
+import com.revenuecat.purchases.PurchasesErrorCode
 import com.questlog.domain.model.CityTile
 import com.questlog.domain.model.DailyQuest
 import com.questlog.domain.model.PlayerStats
@@ -15,6 +16,7 @@ import com.questlog.domain.usecase.DetoxMonitorFlow
 import com.questlog.domain.usecase.GetDashboardStatsUseCase
 import com.questlog.domain.usecase.PurchaseBuildingUseCase
 import com.questlog.domain.usecase.PurchaseResult
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,6 +59,7 @@ sealed interface DashboardIntent {
     object DismissPaywall : DashboardIntent
     object UnlockProDemo : DashboardIntent
     data class BuyPro(val activity: Activity) : DashboardIntent
+    data class TodayVisible(val visible: Boolean) : DashboardIntent
     object DismissSnackbar : DashboardIntent
 }
 
@@ -73,6 +76,9 @@ class DashboardViewModel(
     companion object {
         const val MILESTONE_DAYS = 7
     }
+
+    private var todayVisible = true
+    private var offerJob: Job? = null
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
@@ -169,15 +175,29 @@ class DashboardViewModel(
                             it.copy(purchasing = false, showPaywall = false, snackbarMessage = "Welcome to QuestLog Pro.")
                         }
                     },
-                    onError = { _, userCancelled ->
+                    onError = { error, userCancelled ->
                         _uiState.update {
-                            it.copy(
-                                purchasing = false,
-                                snackbarMessage = if (userCancelled) it.snackbarMessage else "Purchase didn't go through.",
-                            )
+                            when {
+                                userCancelled -> it.copy(purchasing = false)
+                                // Play accepted it; Pro arrives via the listener once the payment clears.
+                                error.code == PurchasesErrorCode.PaymentPendingError -> it.copy(
+                                    purchasing = false,
+                                    showPaywall = false,
+                                    snackbarMessage = "Payment pending. Pro unlocks once it clears.",
+                                )
+                                else -> it.copy(purchasing = false, snackbarMessage = "Purchase didn't go through.")
+                            }
                         }
                     },
                 )
+            }
+
+            is DashboardIntent.TodayVisible -> {
+                todayVisible = intent.visible
+                if (intent.visible) {
+                    val s = _uiState.value
+                    maybeOfferMilestone(s.stats.consecutiveDetoxDays, s.isPremium, billingManager.entitlementsKnown.value)
+                }
             }
 
             is DashboardIntent.UnlockProDemo -> {
@@ -199,7 +219,7 @@ class DashboardViewModel(
 
     /** First 7-day streak for a known-free player: open the trial paywall, once ever. */
     private fun maybeOfferMilestone(streak: Int, isPremium: Boolean, entitlementsKnown: Boolean) {
-        if (streak < MILESTONE_DAYS || isPremium || !entitlementsKnown) return
+        if (streak < MILESTONE_DAYS || isPremium || !entitlementsKnown || !todayVisible) return
         // Don't hijack a paywall the player opened themselves; try again on a later emission.
         if (_uiState.value.showPaywall || milestoneStore.shown) return
         openPaywall(PaywallReason.Milestone) // marks the milestone shown
@@ -210,10 +230,13 @@ class DashboardViewModel(
         if (_uiState.value.stats.consecutiveDetoxDays >= MILESTONE_DAYS && !milestoneStore.shown) {
             milestoneStore.markShown()
         }
-        _uiState.update { it.copy(showPaywall = true, paywallReason = reason, offerLoading = true) }
-        viewModelScope.launch {
+        // purchasing = false: a purchase whose callback never came must not lock the button forever.
+        _uiState.update { it.copy(showPaywall = true, paywallReason = reason, offerLoading = true, purchasing = false) }
+        offerJob?.cancel() // only the latest open's fetch lands
+        offerJob = viewModelScope.launch {
             val offer = billingManager.loadProOffer()
-            _uiState.update { it.copy(proOffer = offer, offerLoading = false) }
+            // A failed re-fetch keeps the offer that already loaded.
+            _uiState.update { it.copy(proOffer = offer ?: it.proOffer, offerLoading = false) }
         }
     }
 }

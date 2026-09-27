@@ -17,7 +17,8 @@ import kotlinx.coroutines.flow.asStateFlow
 /** The Pro package to sell, with display strings resolved from the store product. */
 data class ProOffer(val pkg: Package, val priceText: String, val trialText: String?)
 
-class BillingManager {
+/** `open` so ViewModel tests can script offers and purchase callbacks. */
+open class BillingManager {
 
     companion object {
         const val ENTITLEMENT_PRO = "pro"
@@ -58,12 +59,13 @@ class BillingManager {
     private fun updateEntitlements(customerInfo: CustomerInfo) {
         _customerInfo.value = customerInfo
         val hasPro = customerInfo.entitlements[ENTITLEMENT_PRO]?.isActive == true
+        // Order matters: premium first, then known — never a transient "known and free" for a Pro user.
         _isPremium.value = hasPro
         _entitlementsKnown.value = true
     }
 
     /** The current Offering's monthly (else first) package, or null on any failure. */
-    suspend fun loadProOffer(): ProOffer? = try {
+    open suspend fun loadProOffer(): ProOffer? = try {
         val offering = Purchases.sharedInstance.awaitOfferings().current
         (offering?.monthly ?: offering?.availablePackages?.firstOrNull())?.let { pkg ->
             val product = pkg.product
@@ -85,7 +87,7 @@ class BillingManager {
         null // not configured, offline, or no Offering set up
     }
 
-    fun purchasePackage(
+    open fun purchasePackage(
         activity: Activity,
         pkg: Package,
         onSuccess: (CustomerInfo) -> Unit,

@@ -3,6 +3,11 @@ package com.example.questlog.ui.dashboard
 import android.app.Activity
 import com.example.questlog.billing.BillingManager
 import com.example.questlog.billing.MilestoneOfferStore
+import com.example.questlog.billing.ProOffer
+import com.revenuecat.purchases.CustomerInfo
+import com.revenuecat.purchases.Package
+import com.revenuecat.purchases.PurchasesError
+import com.revenuecat.purchases.PurchasesErrorCode
 import com.questlog.data.local.dao.CurrencyDao
 import com.questlog.data.local.dao.InventoryDao
 import com.questlog.data.local.dao.QuestDao
@@ -48,6 +53,21 @@ class FakeMilestoneStore(var shownFlag: Boolean = false) : MilestoneOfferStore(m
     override val shown: Boolean get() = shownFlag
     override fun markShown() { shownFlag = true; markCount++ }
 }
+
+/** BillingManager with a scripted offer and a purchase that waits for the test to answer. */
+class FakeBilling(var offerResult: ProOffer? = null) : BillingManager() {
+    var purchaseCalls = 0
+    var onError: ((PurchasesError, Boolean) -> Unit)? = null
+    override suspend fun loadProOffer(): ProOffer? = offerResult
+    override fun purchasePackage(
+        activity: Activity,
+        pkg: Package,
+        onSuccess: (CustomerInfo) -> Unit,
+        onError: (PurchasesError, Boolean) -> Unit,
+    ) { purchaseCalls++; this.onError = onError }
+}
+
+private fun anOffer() = ProOffer(mock<Package>(), "\$4.99 / month", null)
 
 class FakeScreenTimeDao : ScreenTimeDao {
     val records = mutableListOf<ScreenTimeRecord>()
@@ -384,5 +404,74 @@ class DashboardViewModelTest {
         vm.onIntent(DashboardIntent.BuyPro(mock<Activity>()))
         assertFalse(vm.uiState.value.purchasing)
         assertTrue(vm.uiState.value.showPaywall)
+    }
+
+    private suspend fun kotlinx.coroutines.test.TestScope.openWithOffer(billing: FakeBilling): DashboardViewModel {
+        billing.setDebugPremium(false)
+        val vm = milestoneVm(streak = 0, billing = billing)
+        advanceUntilIdle()
+        vm.onIntent(DashboardIntent.OpenPaywall)
+        advanceUntilIdle()
+        return vm
+    }
+
+    @Test
+    fun `a second buy tap while purchasing does not start another purchase`() = runTest {
+        val billing = FakeBilling(anOffer())
+        val vm = openWithOffer(billing)
+        vm.onIntent(DashboardIntent.BuyPro(mock<Activity>()))
+        vm.onIntent(DashboardIntent.BuyPro(mock<Activity>()))
+        assertEquals(1, billing.purchaseCalls)
+        assertTrue(vm.uiState.value.purchasing)
+    }
+
+    @Test
+    fun `a pending payment is not reported as a failure`() = runTest {
+        val billing = FakeBilling(anOffer())
+        val vm = openWithOffer(billing)
+        vm.onIntent(DashboardIntent.BuyPro(mock<Activity>()))
+        billing.onError!!(PurchasesError(PurchasesErrorCode.PaymentPendingError, null), false)
+        assertEquals("Payment pending. Pro unlocks once it clears.", vm.uiState.value.snackbarMessage)
+        assertFalse(vm.uiState.value.showPaywall)
+        assertFalse(vm.uiState.value.purchasing)
+    }
+
+    @Test
+    fun `a failed re-fetch keeps the offer that already loaded`() = runTest {
+        val billing = FakeBilling(anOffer())
+        val vm = openWithOffer(billing)
+        vm.onIntent(DashboardIntent.DismissPaywall)
+        billing.offerResult = null
+        vm.onIntent(DashboardIntent.OpenPaywall)
+        advanceUntilIdle()
+        assertEquals("\$4.99 / month", vm.uiState.value.proOffer?.priceText)
+    }
+
+    @Test
+    fun `reopening the paywall clears a purchase that never answered`() = runTest {
+        val billing = FakeBilling(anOffer())
+        val vm = openWithOffer(billing)
+        vm.onIntent(DashboardIntent.BuyPro(mock<Activity>()))
+        vm.onIntent(DashboardIntent.DismissPaywall)
+        vm.onIntent(DashboardIntent.OpenPaywall)
+        assertFalse(vm.uiState.value.purchasing)
+    }
+
+    @Test
+    fun `milestone waits until the player is back on Today`() = runTest {
+        val billing = BillingManager()
+        val store = FakeMilestoneStore()
+        val vm = milestoneVm(streak = 7, billing = billing, store = store)
+        advanceUntilIdle()
+        vm.onIntent(DashboardIntent.TodayVisible(false))
+        billing.setDebugPremium(false)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.showPaywall)
+        assertEquals(0, store.markCount)
+
+        vm.onIntent(DashboardIntent.TodayVisible(true))
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.showPaywall)
+        assertEquals(PaywallReason.Milestone, vm.uiState.value.paywallReason)
     }
 }

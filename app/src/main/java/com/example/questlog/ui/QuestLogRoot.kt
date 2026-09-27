@@ -1,6 +1,8 @@
 package com.example.questlog.ui
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
@@ -61,6 +63,9 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
             viewModel.onIntent(DashboardIntent.DismissSnackbar)
         }
     }
+
+    // The milestone paywall only interrupts Today, never an in-progress edit on another screen.
+    LaunchedEffect(screen) { viewModel.onIntent(DashboardIntent.TodayVisible(screen == Screen.Today)) }
 
     BackHandler(enabled = screen != Screen.Today) { screen = Screen.Today }
     // Composed after the screen handler, so it takes priority while the paywall is up.
@@ -141,7 +146,7 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
                 slideOutVertically(tween(250)) { it } + fadeOut(tween(250))
             },
         ) {
-            val activity = LocalContext.current as Activity
+            val context = LocalContext.current
             PaywallScreen(
                 reason = state.paywallReason,
                 priceText = state.proOffer?.priceText,
@@ -149,10 +154,17 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
                 offerLoading = state.offerLoading,
                 purchasing = state.purchasing,
                 demoAvailable = BuildConfig.DEBUG,
-                onBuy = { viewModel.onIntent(DashboardIntent.BuyPro(activity)) },
+                onBuy = { context.findActivity()?.let { viewModel.onIntent(DashboardIntent.BuyPro(it)) } },
                 onUnlockDemo = { viewModel.onIntent(DashboardIntent.UnlockProDemo) },
                 onDismiss = { viewModel.onIntent(DashboardIntent.DismissPaywall) },
             )
         }
     }
+}
+
+/** The hosting Activity, unwrapping any ContextWrapper (theme, locale) around it. */
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
