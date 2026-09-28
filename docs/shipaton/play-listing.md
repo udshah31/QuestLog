@@ -40,7 +40,7 @@ SHARE YOUR SKYLINE
 Proud of it? Share a card of your city and the hours you've reclaimed.
 
 QUESTLOG PRO
-• Unlimited Mindful Unlocks (free players get one a day)
+• Unlimited Mindful Unlocks (free players get one check a day)
 • Two extra buildings: Crystal Castle and Aurora Fountain
 A free trial is offered when you reach your first seven-day streak. Subscriptions renew automatically until cancelled in Google Play; you can cancel any time before the trial ends.
 
