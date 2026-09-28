@@ -48,7 +48,7 @@ android {
     namespace = "com.example.questlog"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.questlog.app"
+        applicationId = "com.udaysah.questlog"
         minSdk = 26
         targetSdk = 36
         versionCode = resolvedVersionCode
