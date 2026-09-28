@@ -84,7 +84,7 @@ fun UnlockScreen(state: UnlockUiState, onIntent: (UnlockIntent) -> Unit, onBack:
                     if (state.loaded) {
                         Caption(if (!state.isPremium && state.freeLeft > 0) "1 free mindful unlock left today" else "Unlimited with Pro")
                     }
-                    Caption("Your answer is checked by AI and not saved.")
+                    Caption("Checked by AI, not saved by QuestLog.")
                 }
                 UnlockPhase.Granted -> {
                     Text("5 minutes, no charge.", style = QuestType.heroLine, color = c.inkPrimary)

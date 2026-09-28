@@ -52,7 +52,7 @@
 ## What to call out for judges (description / captions)
 
 - **RevenueCat:** paywall priced live from the current Offering; 7-day free trial surfaced at the first 7-day streak; trial eligibility handled by Play (no false "free trial" copy).
-- **AI:** Mindful Unlocks — TypeSafe judgment (purposeful? + category) behind a Cloudflare Worker; the reason text is never stored.
+- **AI:** Mindful Unlocks — TypeSafe judgment (purposeful? + category) behind a Cloudflare Worker; the reason text is never saved by QuestLog or logged by the proxy.
 - **Craft:** Kotlin Multiplatform core, ~230 tests, idempotent reward accounting, CI deploy to Play internal track on every merge.
 
 ## Open questions

@@ -1,5 +1,6 @@
 // Mindful Unlocks proxy: holds the TypeSafe key, fixes the questions, returns two numbers.
-// It never logs request bodies — the player's reason is not stored anywhere.
+// It never logs request bodies, so the player's reason isn't stored by us. TypeSafe may retain
+// inputs per its privacy policy (no fixed period; zero retention is enterprise-only).
 
 const TYPESAFE_URL = 'https://api.typesafe.ai/v1/systemone'
 const MAX_BODY = 2048
