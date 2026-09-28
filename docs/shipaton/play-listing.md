@@ -31,7 +31,7 @@ HOW IT WORKS
 • Spend gold on buildings for your realm: Market, Library, Zen Garden and more, around your Town Hall.
 
 MINDFUL UNLOCKS
-Sometimes you really do need the app. Open it through QuestLog and type why. A small AI model checks whether it's a real task — replying to a message, looking something up, work — and if it is, you get five minutes that don't count against you. Just bored? It tells you honestly and still lets you in. No lectures, no blocking. What you type is never stored.
+Sometimes you really do need the app. Open it through QuestLog and type why. A small AI model checks whether it's a real task — replying to a message, looking something up, work — and if it is, you get five minutes that don't count against you. Just bored? It tells you honestly and still lets you in. No lectures, no blocking. QuestLog never saves what you type: it's sent once to our AI provider for the check, and the provider doesn't train on it.
 
 SEE THE LONG GAME
 The Progress screen shows everything you've taken back: all-time time reclaimed, your best day, your level and the last seven days at a glance.
@@ -60,5 +60,5 @@ Less scrolling, more building.
 ## Checks before publishing
 
 - Usage Access (`PACKAGE_USAGE_STATS`) needs the **Permissions declaration** form and a **Data safety** answer (screen-time data, processed on device).
-- The Mindful Unlock reason is sent to the proxy for a verdict and not stored — declare it under Data safety as "App activity / Other user-generated content, processed ephemerally, not shared".
+- The Mindful Unlock reason goes via the proxy (never logged) to TypeSafe for a verdict. TypeSafe keeps inputs "as long as reasonably necessary" with no fixed period (zero retention is enterprise-only), so declare it under Data safety as "App activity / Other user-generated content", **collected, not processed ephemerally**, not shared (TypeSafe is a service provider acting for us).
 - Pro price and trial length must match the Play subscription exactly.
