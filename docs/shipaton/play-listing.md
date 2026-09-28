@@ -27,8 +27,8 @@ QuestLog turns a digital detox into a quest. Every minute you don't spend on the
 HOW IT WORKS
 • Pick your distractions — Instagram, TikTok, YouTube or anything else — and give each one a daily allowance if you like.
 • QuestLog reads your screen time and turns the time you saved into XP and gold. Only time past your allowance counts against you.
-• Three fresh daily quests each day, and a streak that multiplies everything you earn.
-• Spend gold on buildings for your realm: Town Hall, Market, Library, Zen Garden and more.
+• Three fresh daily quests each day, and a streak that multiplies the XP and gold you earn from time saved.
+• Spend gold on buildings for your realm: Market, Library, Zen Garden and more, around your Town Hall.
 
 MINDFUL UNLOCKS
 Sometimes you really do need the app. Open it through QuestLog and type why. A small AI model checks whether it's a real task — replying to a message, looking something up, work — and if it is, you get five minutes that don't count against you. Just bored? It tells you honestly and still lets you in. No lectures, no blocking. What you type is never stored.
@@ -40,6 +40,8 @@ SHARE YOUR SKYLINE
 Proud of it? Share a card of your city and the hours you've reclaimed.
 
 QUESTLOG PRO
+• Double XP and gold for every minute you save
+• Streak Freeze: protects your streak through one missed day a week
 • Unlimited Mindful Unlocks (free players get one check a day)
 • Two extra buildings: Crystal Castle and Aurora Fountain
 A free trial is offered when you reach your first seven-day streak. Subscriptions renew automatically until cancelled in Google Play; you can cancel any time before the trial ends.
