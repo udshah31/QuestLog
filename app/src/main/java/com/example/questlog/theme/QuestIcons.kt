@@ -35,6 +35,11 @@ object QuestIcons {
         moveTo(5f, 12f); lineTo(19f, 12f); moveTo(13f, 6f); lineTo(19f, 12f); lineTo(13f, 18f)
     }
 
+    val Share: ImageVector = line("Share") {
+        moveTo(12f, 15f); lineTo(12f, 4f); moveTo(8f, 8f); lineTo(12f, 4f); lineTo(16f, 8f)
+        moveTo(5f, 13f); lineTo(5f, 19f); lineTo(19f, 19f); lineTo(19f, 13f)
+    }
+
     val Check: ImageVector = line("Check") { moveTo(5f, 13f); lineTo(10f, 18f); lineTo(19f, 6f) }
 
     val Refresh: ImageVector = line("Refresh") {

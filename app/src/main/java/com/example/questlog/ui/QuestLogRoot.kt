@@ -159,7 +159,7 @@ fun QuestLogRoot(viewModel: DashboardViewModel) {
                     Screen.Progress -> {
                         val progressVm = koinViewModel<ProgressViewModel>()
                         val progressState by progressVm.uiState.collectAsState()
-                        ProgressScreen(state = progressState, onBack = { screen = Screen.Today })
+                        ProgressScreen(state = progressState, tiles = state.cityTiles, onBack = { screen = Screen.Today })
                     }
                 }
             }
