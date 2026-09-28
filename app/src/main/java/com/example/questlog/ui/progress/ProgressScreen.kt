@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -42,6 +43,10 @@ import com.example.questlog.theme.QuestType
 import com.example.questlog.ui.common.Hairline
 import com.example.questlog.ui.common.QuestScaffold
 import com.example.questlog.ui.format.levelTitle
+import com.example.questlog.ui.share.renderShareCard
+import com.example.questlog.ui.share.shareCaption
+import com.example.questlog.ui.share.shareCard
+import com.questlog.domain.model.CityTile
 import com.questlog.domain.model.DaySaved
 import com.questlog.domain.model.ProgressStats
 import com.questlog.util.TimeConversion
@@ -49,13 +54,19 @@ import kotlinx.coroutines.delay
 import kotlinx.datetime.LocalDate
 
 @Composable
-fun ProgressScreen(state: ProgressUiState, onBack: () -> Unit) {
+fun ProgressScreen(state: ProgressUiState, tiles: List<CityTile>, onBack: () -> Unit) {
     val c = QuestLogTheme.colors
+    val context = LocalContext.current
     QuestScaffold(
         header = {
             Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) { Icon(QuestIcons.Back, contentDescription = "Back", tint = c.inkPrimary) }
-                Text("Progress", style = QuestType.screenTitle, color = c.inkPrimary)
+                Text("Progress", style = QuestType.screenTitle, color = c.inkPrimary, modifier = Modifier.weight(1f))
+                state.stats?.let { s ->
+                    IconButton(onClick = {
+                        shareCard(context, renderShareCard(context, s, tiles, c), shareCaption(s.reclaimedAllTimeMs))
+                    }) { Icon(QuestIcons.Share, contentDescription = "Share progress", tint = c.inkPrimary) }
+                }
             }
         },
     ) {
@@ -195,7 +206,7 @@ private fun previewStats(week: List<Long>) = ProgressStats(
 @Composable
 private fun ProgressScreenPreview() {
     QuestLogTheme {
-        ProgressScreen(ProgressUiState(false, previewStats(listOf(40, 62, 0, 88, 51, 30, 22).map { it * 60_000L })), onBack = {})
+        ProgressScreen(ProgressUiState(false, previewStats(listOf(40, 62, 0, 88, 51, 30, 22).map { it * 60_000L })), tiles = emptyList(), onBack = {})
     }
 }
 
@@ -203,6 +214,6 @@ private fun ProgressScreenPreview() {
 @Composable
 private fun ProgressScreenPreview_EmptyWeek() {
     QuestLogTheme {
-        ProgressScreen(ProgressUiState(false, previewStats(listOf(0, 0, 0, 0, 0, 0, 12).map { it * 60_000L })), onBack = {})
+        ProgressScreen(ProgressUiState(false, previewStats(listOf(0, 0, 0, 0, 0, 0, 12).map { it * 60_000L })), tiles = emptyList(), onBack = {})
     }
 }
