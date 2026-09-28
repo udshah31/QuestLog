@@ -27,3 +27,6 @@ keystore.properties
 # Mindful Unlocks proxy
 proxy/node_modules/
 proxy/.wrangler/
+
+# Shipaton demo footage (large, local only)
+docs/shipaton/footage/
