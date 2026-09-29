@@ -31,7 +31,7 @@ HOW IT WORKS
 • Spend gold on buildings for your realm: Market, Library, Zen Garden and more, around your Town Hall.
 
 MINDFUL UNLOCKS
-Sometimes you really do need the app. Open it through QuestLog and type why. A small AI model checks whether it's a real task — replying to a message, looking something up, work — and if it is, you get five minutes that don't count against you. Just bored? It tells you honestly and still lets you in. No lectures, no blocking. QuestLog never saves what you type: it's sent once to our AI provider for the check, and the provider doesn't train on it.
+Sometimes you really do need the app. Open it through QuestLog and type why. A small AI model checks whether it's a real task — replying to a message, looking something up, work — and if it is, you get five minutes that don't count against you. Just bored? It tells you honestly and still lets you in. No lectures, no blocking. QuestLog doesn't save what you type — it's sent once to our AI provider just for the check.
 
 SEE THE LONG GAME
 The Progress screen shows everything you've taken back: all-time time reclaimed, your best day, your level and the last seven days at a glance.
@@ -44,7 +44,7 @@ QUESTLOG PRO
 • Streak Freeze: protects your streak through one missed day a week
 • Unlimited Mindful Unlocks (free players get one check a day)
 • Two extra buildings: Crystal Castle and Aurora Fountain
-A free trial is offered when you reach your first seven-day streak. Subscriptions renew automatically until cancelled in Google Play; you can cancel any time before the trial ends.
+New subscribers get a 1-week free trial, and QuestLog offers it when you reach your first seven-day streak. After the trial, Pro is billed monthly and renews automatically until cancelled in Google Play; cancel any time before the trial ends and you won't be charged.
 
 PRIVACY
 Your screen-time data stays on your device. QuestLog needs Usage Access permission to see how long you use the apps you've chosen; it doesn't read what you do inside them.
