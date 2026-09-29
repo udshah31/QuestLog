@@ -76,7 +76,7 @@ fun BlocklistScreen(
             ) {
                 Text("Usage access needed", style = QuestType.bodyLarge, color = c.inkPrimary)
                 Text(
-                    "QuestLog needs usage access to measure time in these apps.",
+                    "QuestLog reads how long you use the apps on this list to reward the time you save. It stays on this phone and is never uploaded.",
                     style = QuestType.bodySmall, color = c.inkMuted,
                 )
                 Spacer(Modifier.height(QuestSpacing.sm))
