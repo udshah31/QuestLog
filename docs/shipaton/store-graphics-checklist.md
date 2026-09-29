@@ -5,7 +5,7 @@ Files live in `docs/shipaton/store-screenshots/` unless noted.
 
 | Asset | Play requirement | Have | Status |
 |---|---|---|---|
-| **App icon** | 512×512 PNG, 32-bit (alpha OK), ≤ 1 MB, full square — Play applies the rounded mask | — | ❌ **Missing** (see below) |
+| **App icon** | 512×512 PNG, 32-bit (alpha OK), ≤ 1 MB, full square — Play applies the rounded mask | `app-icon-512.png` 512×512, full-bleed | ✅ |
 | **Feature graphic** | 1024×500 JPEG or 24-bit PNG, **no alpha**, ≤ 15 MB | `feature-graphic.png` 1024×500, no alpha, 44 KB | ✅ |
 | **Phone screenshots** | 2–8; PNG/JPEG ≤ 8 MB each; 320–3840 px per side; long side ≤ 2× short side; 1080×1920+ recommended for promotion | 5 × 1080×1920, no alpha, 112–140 KB | ✅ |
 | 7" tablet screenshots | Optional (required only to be featured for tablets) | — | ⏭ skip |
@@ -23,20 +23,13 @@ Files live in `docs/shipaton/store-screenshots/` unless noted.
 
 The first 2–3 show in search results; keep Today and Mindful Unlock first.
 
-## ❌ App icon — the launcher icon is still Android Studio's default
+## App icon
 
-`app/src/main/res/drawable/ic_launcher_foreground.xml` / `ic_launcher_background.xml` and the
-`mipmap-*/ic_launcher*.webp` files are unchanged from the project template (the green grid +
-Android robot). Before publishing:
-
-- [ ] Design a QuestLog icon in the listing's style (paper background `#FAF7FF`, the red
-      `#D72323` skyline or a "q" mark), readable at 48 px.
-- [ ] Replace the **adaptive launcher icon** (foreground + background, 108 dp with the logo in
-      the central 66 dp safe zone) and the `mipmap-*` fallbacks — Android Studio's
-      *New → Image Asset* generates all of them.
-- [ ] Export the **512×512 Play icon** from the same source (full-bleed square, no rounded
-      corners or shadow — Play adds them).
-- [ ] Re-take any screenshot/footage that shows the launcher (none of the 5 store screenshots do).
+Skyline mark designed in Stitch (paper `#FAF7FF`, three red towers + one outlined, charcoal
+ground line). The same geometry is the adaptive launcher icon
+(`drawable/ic_launcher_foreground.xml` + `ic_launcher_background.xml`, also used as the themed
+monochrome layer), scaled into the 66 dp safe zone. The template `mipmap-*/*.webp` fallbacks
+were removed — `minSdk` is 26, so only `mipmap-anydpi-v26` is ever used.
 
 ## Final pre-upload checks
 
