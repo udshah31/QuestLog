@@ -20,7 +20,7 @@ The wording of individual questions shifts over time; the answers below follow w
 | Crude humour | **No** | |
 | Language (profanity) | **No** | All copy is fixed text written by us. |
 | Controlled substances (drugs, alcohol, tobacco) | **No** | |
-| Gambling — real or simulated, loot boxes, random paid rewards | **No** | Gold is earned only from time saved; nothing random, nothing bought with money except Pro. |
+| Gambling — real or simulated, loot boxes, random paid rewards | **No** | Gold comes only from time saved and daily quests; nothing random, nothing bought with money except Pro. |
 | Users interact or exchange content with each other (chat, voice, UGC visible to others) | **No** | No in-app social features. The reason typed for a Mindful Unlock is seen only by the user and the AI check. |
 | Shares the user's current physical location with other users | **No** | No location access at all. |
 | Digital purchases | **Yes** | QuestLog Pro subscription via Google Play. |
