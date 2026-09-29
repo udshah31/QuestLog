@@ -59,6 +59,6 @@ Less scrolling, more building.
 
 ## Checks before publishing
 
-- Usage Access (`PACKAGE_USAGE_STATS`) needs the **Permissions declaration** form and a **Data safety** answer (screen-time data, processed on device).
+- Usage Access (`PACKAGE_USAGE_STATS`) isn't on Play's restricted-permissions list — see `usage-access-declaration.md` (text ready if Play asks). Screen time stays on device, so it isn't a Data safety data type.
 - The Mindful Unlock reason goes via the proxy (never logged) to TypeSafe for a verdict. TypeSafe keeps inputs "as long as reasonably necessary" with no fixed period (zero retention is enterprise-only), so declare it under Data safety as "App activity / Other user-generated content", **collected, not processed ephemerally**, not shared (TypeSafe is a service provider acting for us).
 - Pro price and trial length must match the Play subscription exactly.
