@@ -49,5 +49,5 @@ QuestLog, digital detox, screen time, digital wellbeing, habit tracker, focus ap
       adjusted to the final cut.
 - [ ] Replace `[PLAY LINK]` once the listing is live — or delete that line.
 - [ ] Privacy policy link works (GitHub Pages turned on after pushing main).
-- [ ] Thumbnail: the end card (`footage/shot9-end-card.png`) or the feature graphic works; YouTube
-      wants 1280×720 — export the feature graphic's layout at that size if you want a custom one.
+- [ ] Thumbnail: upload `youtube-thumbnail.png` (1280×720, 52 KB; bottom-right corner kept
+      clear of the timestamp). Custom thumbnails need a phone-verified YouTube account.
