@@ -23,8 +23,8 @@ Submit on Devpost well before — uploads and store reviews take time.
 | 1 | **Text description** of features and functionality | `submission.md` | ✅ (fill in links) |
 | 2 | **Demo video**: shows the app running on the device it was built for; ≤ **2 min** of essential footage; **publicly visible** on YouTube or Vimeo; no third-party trademarks or copyrighted music without permission | 9 shots + script + captions, 1:30 planned | ⏳ edit + upload **Public** (not unlisted); use royalty-free music |
 | 3 | **URL to the fully published app** on Google Play (or App Store / Galaxy Store) | — | ❌ **blocker** |
-| 4 | **1024×1024 app icon** | `store-screenshots/app-icon-512.png` is 512 | ❌ needs a 1024 export |
-| 5 | **≥ 1 screenshot at 1179 × 2556 px, no device frame** | store screenshots are 1080×1920 *with* phone frames | ❌ needs a raw capture at that size |
+| 4 | **1024×1024 app icon** | `store-screenshots/app-icon-1024.png` (rendered from the vector) | ✅ |
+| 5 | **≥ 1 screenshot at 1179 × 2556 px, no device frame** | `store-screenshots/shipaton-today-1179x2556.png` (raw emulator capture) | ✅ |
 | 6 | **Free trial or promo code** so judges can unlock premium | 1-week free trial on the monthly plan | ✅ once the Play subscription + offer exist |
 
 ## ❌ Blocker — "fully published" on Google Play by 30 Sep
@@ -54,9 +54,9 @@ ready in `docs/shipaton/` — they apply to whichever account you publish from.
 
 ## Fixes that don't depend on the store
 
-- [ ] **1024×1024 icon** — export from the icon SVG (vector, scales cleanly).
-- [ ] **1179×2556 screenshot, no frame** — set the emulator to that size
-      (`adb shell wm size 1179x2556`), capture Today, reset with `adb shell wm size reset`.
+- [x] **1024×1024 icon** — `app-icon-1024.png`.
+- [x] **1179×2556 screenshot, no frame** — `shipaton-today-1179x2556.png` (captured with
+      `adb shell wm size 1179x2556`, then reset).
 - [ ] **Video Public**, ≤ 2:00, app running on Android, royalty-free (or no) music, no
       third-party logos beyond what's on-screen in the app.
 
