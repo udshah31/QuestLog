@@ -14,6 +14,10 @@ jobs:
     name: Build AAB & Release to Play Console
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Job-level so the steps' `if:` can see them — a step's own `env:` isn't visible to its `if:`.
+    env:
+      KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      PLAY_CONFIG_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
 
     steps:
       - name: Checkout Code
@@ -35,8 +39,6 @@ jobs:
 
       - name: Decode Release Keystore
         if: env.KEYSTORE_BASE64 != ''
-        env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
 
@@ -51,16 +53,17 @@ jobs:
         run: ./gradlew :app:bundleRelease --no-daemon
 
       - name: Upload to Google Play Internal Track
-        if: env.PLAY_CONFIG_JSON != ''
-        env:
-          PLAY_CONFIG_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        # Play rejects unsigned bundles, so both secrets are required.
+        if: env.PLAY_CONFIG_JSON != '' && env.KEYSTORE_BASE64 != ''
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.udaysah.questlog
           releaseFiles: app/build/outputs/bundle/release/*.aab
           track: internal
-          status: completed
+          # `draft` until the app's first release is live; a never-published app rejects
+          # anything else. Switch to `completed` after that.
+          status: draft
           changesNotSentForReview: true
 
       - name: Upload Release AAB Artifact
