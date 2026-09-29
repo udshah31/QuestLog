@@ -19,6 +19,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.example.questlog.theme.QuestIcons
@@ -32,6 +33,7 @@ import com.example.questlog.ui.common.QuestScaffold
 @Composable
 fun UnlockScreen(state: UnlockUiState, onIntent: (UnlockIntent) -> Unit, onBack: () -> Unit) {
     val c = QuestLogTheme.colors
+    val keyboard = LocalSoftwareKeyboardController.current
     QuestScaffold(
         header = {
             Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -80,7 +82,10 @@ fun UnlockScreen(state: UnlockUiState, onIntent: (UnlockIntent) -> Unit, onBack:
                     PrimaryButton(
                         if (state.phase == UnlockPhase.Checking) "Checking…" else "Check",
                         enabled = state.phase == UnlockPhase.Reason && state.reason.isNotBlank(),
-                    ) { onIntent(UnlockIntent.Check) }
+                    ) {
+                        keyboard?.hide() // else it stays up over the verdict or the paywall
+                        onIntent(UnlockIntent.Check)
+                    }
                     if (state.loaded) {
                         Caption(if (!state.isPremium && state.freeLeft > 0) "1 free mindful unlock left today" else "Unlimited with Pro")
                     }
