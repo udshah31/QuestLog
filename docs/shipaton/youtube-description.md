@@ -1,6 +1,6 @@
 # QuestLog — promo video (YouTube)
 
-Upload settings: **Unlisted** (or Public) · **not made for kids** · **no ads / monetisation
+Upload settings: **Public** (Shipaton requires the demo video to be publicly visible) · **not made for kids** · **no ads / monetisation
 off** · not age-restricted — Play rejects promo videos that are private, age-restricted or run
 ads. Paste the URL into Play (*Main store listing → Video*) and into `submission.md`.
 
