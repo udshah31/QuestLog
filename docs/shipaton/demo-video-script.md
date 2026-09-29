@@ -8,7 +8,7 @@
 
 ## Before you record
 
-- [ ] Pro trial live: Play subscription with 7-day free trial, attached to `pro`, in the current RevenueCat Offering.
+- [ ] Pro trial live: Play subscription with 7-day free trial, attached to `questlog_pro`, in the current RevenueCat Offering.
 - [ ] Record on a **free** test account (the free-unlock limit and the milestone paywall only show for non-Pro).
 - [ ] Seed a realistic state: a streak of a few days, **3–4 of 6 buildings built** (so the skyline shows red, outlined and grey towers), some reclaimed time today.
 - [ ] Have **Instagram or YouTube** installed and on the Distractions list.
