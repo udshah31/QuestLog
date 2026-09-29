@@ -3,7 +3,7 @@
 **Effective:** 28 September 2026
 **App:** QuestLog (Android, package `com.udaysah.questlog`)
 **Developer:** Uday Sah
-**Contact:** [CONTACT EMAIL]
+**Contact:** udshah31@gmail.com
 
 QuestLog rewards you for time you *don't* spend on distracting apps. This policy explains what
 data the app uses, where it goes, and what stays on your phone.
