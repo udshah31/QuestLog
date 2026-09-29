@@ -76,6 +76,23 @@ QuestLog is not directed at children under 13 and does not knowingly collect the
 - For questions or deletion requests about RevenueCat purchase records, contact us at the
   address above.
 
+## Delete your data
+
+QuestLog (by Uday Sah) has no accounts, so most of your data is removed simply by removing it
+from your phone:
+
+1. **On-device data** (usage times, XP, gold, streak, buildings, quests, mindful-unlock
+   history, distraction list): open Android **Settings → Apps → QuestLog → Storage →
+   Clear storage**, or uninstall QuestLog. It's deleted immediately and can't be recovered.
+2. **Purchase records held by RevenueCat** (purchase history and the anonymous app user ID):
+   email **udshah31@gmail.com** with the subject "QuestLog data deletion". We'll ask RevenueCat
+   to delete that customer record within 30 days. Google Play keeps its own order records for
+   your Google account under Google's policies.
+3. **Mindful Unlock text sent to TypeSafe**: QuestLog never stores it and can't link it to you
+   (it isn't tied to your name or account). TypeSafe may keep it under its own privacy policy.
+
+Your subscription itself is managed and cancelled in Google Play, not by deleting data.
+
 ## Changes
 
 If this policy changes, we'll update this page and its effective date.
