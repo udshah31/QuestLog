@@ -21,7 +21,7 @@ data class ProOffer(val pkg: Package, val priceText: String, val trialText: Stri
 open class BillingManager {
 
     companion object {
-        const val ENTITLEMENT_PRO = "pro"
+        const val ENTITLEMENT_PRO = "questlog_pro" // must match the RevenueCat entitlement identifier
     }
 
     private val _isPremium = MutableStateFlow(false)

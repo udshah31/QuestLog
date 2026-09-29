@@ -50,7 +50,7 @@ all-time reclaimed time, best day and a 7-day chart, and a 9:16 skyline card to 
 
 ## How RevenueCat powers it
 
-- **QuestLog Pro** is a RevenueCat subscription (`pro` entitlement):
+- **QuestLog Pro** is a RevenueCat subscription (`questlog_pro` entitlement):
   double XP and gold, a weekly Streak Freeze, unlimited Mindful Unlocks (free: one a day)
   and two exclusive buildings.
 - **Offer-driven paywall.** Price and trial text come live from the current RevenueCat
